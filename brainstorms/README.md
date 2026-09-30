@@ -6,4 +6,4 @@ Convenção de nome: `AAAA-MM-DD-tema-da-ideia.md`.
 
 ## Índice
 
-Adicione aqui um link e uma descrição curta para cada novo brainstorm.
+- [Política de depreciação de releases](2026-09-29-politica-de-depreciacao.md): classificação de lifecycle dos ConfigMaps, latest, proteção por uso, retenção e reconciliação por aplicação.
