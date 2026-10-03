@@ -1,122 +1,147 @@
 # Política de depreciação de releases
 
 - Sessão principal: 29/09/2026 (America/Sao_Paulo).
-- Registro estruturado: 30/09/2026.
+- Registro inicial: 30/09/2026; reorganização analítica: 03/10/2026.
 - Status: em exploração; publicação de releases já implementada.
 - Tags: plataforma, shards, single-tenant, ConfigMap, lifecycle, Argo CD.
 
-> Síntese estruturada dos trechos e pontos recuperados da sessão, com antecedentes relacionados. Não é uma transcrição integral. Propostas do assistente são identificadas como propostas; detalhes não recuperados permanecem em aberto.
+> Este documento é uma síntese de uma conversa com GPT, não uma transcrição nem uma política aprovada. **Registrado** identifica regras e preferências recuperadas; **proposta anterior** identifica sugestões daquela conversa; **recomendação desta revisão** identifica análise acrescentada em 03/10/2026. O detalhamento técnico de 30/09 foi preservado no apêndice como proposta para validação.
 
-## 1. Contexto e problema
+## 1. Síntese e direção recomendada
 
-A plataforma com shards e single tenant já possui praticamente todos os níveis funcionais implementados. O aspecto pendente é a política de depreciação.
+A publicação já cria releases imutáveis. Falta definir como preservar as necessárias e tratar as que deixaram de ser úteis, considerando centenas de aplicações, múltiplos consumers e mudanças independentes de publicação e implantação.
 
-Os ConfigMaps de release são criados por um Job definido em um template Helm. Cada release tem conteúdo imutável e deve preservar seu histórico. A versão segue o formato `v1.0.0-<commit>`, em vez de uma sequência simples como `v1`, `v2`.
+**Recomendação desta revisão:** validar primeiro a classificação por aplicação e seu dry-run; depois materializar metadata; só habilitar depreciação formal e exclusão quando seus contratos estiverem definidos. A prioridade é demonstrar quais releases podem perder proteção sem comprometer operação e rollback.
 
-A discussão concentrou-se em:
-- Determinar quais releases estão em uso e quais não estão.
-- Determinar qual release é a latest.
-- Materializar a classificação em metadata.
-- Remarcar as releases quando uma nova publicação acontecer.
-- Acionar o mecanismo por aplicação, considerando centenas de aplicações.
+O ponto central da política é distinguir três ações:
 
-## 2. Regras e preferências registradas
+| Ação | Resultado | Situação atual |
+| --- | --- | --- |
+| Classificar | Explicar proteção, retenção e candidatura de cada release. | Proposta detalhada no apêndice. |
+| Deprecar | Declarar uma restrição de uso ou suporte, com regras conhecidas pelos consumers. | Significado e efeitos ainda não definidos. |
+| Excluir | Remover fisicamente o ConfigMap e, se aplicável, outros artefatos. | Depende de garantias adicionais; não autorizada pela classificação isolada. |
 
-| Item | Regra ou preferência |
-| --- | --- |
-| Release em uso | Nunca remover uma release referenciada por um consumer. |
-| Última release | Nunca remover a última release da aplicação. |
-| Publicação | Manter o Job no template Helm como mecanismo de criação. |
-| Reconcile | Disponibilizar um endpoint no generator plugin, acionável após publicação e por outros meios. |
-| Políticas | Permitir comportamentos selecionáveis por flavor, preservando as regras de proteção. |
-| Simulação | Disponibilizar dry-run para calcular o resultado sem alterações reais. |
-| Falha do endpoint | O comportamento desejado é manter as releases; o acúmulo temporário é aceitável. |
-| Proteção operacional | Considerar uma feature flag para desativar o mecanismo durante correções. |
+Uma release antiga pode continuar necessária. Uma release candidata pode voltar a ser referenciada. Uma release marcada como deprecated só impede novas referências se houver um mecanismo que aplique essa restrição.
 
-A anotação de preservação contra prune usada no contexto de publicação é:
+## 2. Contexto, problema e valor esperado
+
+### O que já existe — registrado
+
+- Plataforma com shards e single tenant, com a publicação praticamente implementada.
+- ConfigMaps de release criados por Job em template Helm.
+- Conteúdo imutável, com identidade completa no formato `v1.0.0-<commit>`.
+- Consumers que referenciam releases e generator plugin como local desejado para o endpoint de reconcile.
+
+### Problema a resolver
+
+Falta um critério explícito para distinguir releases necessárias, histórico útil e excedentes. O mecanismo também precisa explicar e atualizar essa classificação quando há uma publicação ou mudança de consumer.
+
+O volume real, custo do acúmulo e impacto operacional ainda não foram medidos. Portanto, a necessidade de excluir automaticamente é uma hipótese a validar, embora a necessidade de classificar esteja registrada.
+
+### Beneficiários e necessidades — análise desta revisão
+
+| Papel a validar | Necessidade | Evidência esperada |
+| --- | --- | --- |
+| Operação da plataforma | Entender por que uma release está preservada e recuperar falhas. | Plano com razões e resultado por objeto. |
+| Equipes das aplicações | Publicar e migrar consumers sem perder versões necessárias. | Proteções mantidas nos cenários de publicação e migração. |
+| Responsáveis pelos tenants | Preservar reativação e rollback conforme o contrato. | Definição de uso operacional e horizonte de recuperação. |
+
+Esses papéis são inferidos do contexto; suas necessidades precisam ser confirmadas com os responsáveis.
+
+## 3. Regras e preferências recuperadas
+
+| ID | Regra ou preferência registrada | Consequência para a proposta |
+| --- | --- | --- |
+| R1 | Nunca remover release referenciada por consumer. | Retenção não pode retirar proteção por referência. |
+| R2 | Nunca remover a última release da aplicação. | Definir o significado de última antes de habilitar exclusão. |
+| R3 | Manter criação pelo Job no template Helm. | O lifecycle acompanha a publicação existente. |
+| R4 | Disponibilizar endpoint no generator plugin, acionável após publicação e por outros meios. | Reconcile deve ser executável sob demanda. |
+| R5 | Permitir políticas selecionáveis por flavor, preservando proteções. | Variação de retenção não flexibiliza R1 e R2. |
+| R6 | Disponibilizar dry-run sem alterações reais. | O mesmo cálculo deve produzir um plano inspecionável. |
+| R7 | Se o endpoint falhar, preferir manter releases. | Acúmulo temporário é aceitável. |
+| R8 | Considerar feature flag para interromper o mecanismo. | Preferência operacional, ainda sem contrato fechado. |
+
+No contexto de publicação foi registrada a annotation:
 
 ```yaml
 argocd.argoproj.io/sync-options: Prune=false
 ```
 
-Um mínimo de releases históricas, por exemplo três, foi discutido como opção de retenção. Não há quantidade definitiva registrada.
+Sua presença não resolve o protocolo de exclusão do lifecycle. Confirmar quais componentes podem remover releases e quem controla essa operação.
 
-## 3. Proposta: derivar o lifecycle do estado atual
+Não há quantidade definitiva de histórico aprovada. A opção de conservar três releases foi discutida; o exemplo técnico usa duas **adicionais não protegidas**. São exemplos com semânticas que precisam ser distinguidas.
 
-A proposta recuperada foi usar um reconciler stateless: ler releases e consumers e recalcular a classificação. As marcações representam o resultado do cálculo, e não substituem as referências dos consumers.
+## 4. Vocabulário e fontes de verdade propostas
 
-### Release em uso
-
-Derivar o conjunto de releases utilizadas das referências dos consumers da aplicação. Uma release pode ser utilizada por vários consumers.
-
-O identificador completo, incluindo o commit, distingue as releases. O nome exato do campo de referência e as regras de resolução precisam acompanhar o contrato real dos ConfigMaps.
-
-### Latest
-
-A proposta foi selecionar a release com maior `metadata.creationTimestamp`.
-
-Nesse critério, latest significa **última publicação registrada no Kubernetes**. O algoritmo não precisa ordenar lexicograficamente o commit nem interpretar o sufixo como contador.
-
-### Proteção e retenção
-
-| Classificação discutida | Significado |
-| --- | --- |
-| Latest / protected | Última release publicada, protegida contra remoção. |
-| In-use / protected | Release referenciada por um ou mais consumers. |
-| Retained | Release mantida pela política de histórico, mesmo sem uso atual. |
-| Candidate / deprecated | Release fora das proteções e da retenção, candidata à etapa de depreciação ou limpeza. |
-
-Latest e in-use podem ocorrer simultaneamente. Os termos candidate/deprecated foram recuperados da proposta; a enumeração final e a distinção entre deprecar e excluir ainda precisam ser fechadas.
-
-## 4. Proposta de metadata
-
-As labels de descoberta discutidas foram `type=release` e `application=<aplicação>`.
-
-A proposta também incluiu:
-- Label `lifecycle.platform.io/state`, com estados como `protected` e `retained`.
-- Annotations para `in-use`, `reason`, `consumers` e `reconciled-at`.
-
-Os nomes completos das annotations e o schema final não foram recuperados. Este registro não estabelece um contrato definitivo de metadata.
-
-O objetivo é manter o conteúdo de release imutável e atualizar apenas a classificação operacional em metadata.
-
-## 5. Fluxo de reconciliação proposto
-
-1. Identificar a aplicação solicitada.
-2. Listar seus ConfigMaps de release e consumers.
-3. Ordenar as releases pelo critério de publicação.
-4. Determinar latest e o conjunto de releases em uso.
-5. Calcular as releases protegidas.
-6. Aplicar a política de retenção às demais.
-7. Gerar o plano de alterações.
-8. Em dry-run, apresentar o plano sem executar mudanças.
-9. Na execução efetiva, atualizar metadata via PATCH.
-10. Executar limpeza apenas se essa etapa estiver habilitada pela política.
-
-A marcação de deprecated e a exclusão são etapas distintas a esclarecer na implementação.
-
-### Exemplo de remarcação
-
-| Momento | Release A | Release B |
+| Conceito | Definição de trabalho | Limite |
 | --- | --- | --- |
-| A publicada | Latest; protegida. | Ainda não existe. |
-| B publicada; consumer segue em A | Deixa de ser latest; continua protegida por uso. | Passa a ser latest; protegida. |
-| Consumer migra para B | Retida ou candidata, conforme a política. | Latest e em uso; protegida. |
+| Identidade | Versão completa, incluindo commit. | Confirmar campo real e escopo de unicidade. |
+| Latest | Última publicação no catálogo autoritativo. | `creationTimestamp` é uma implementação proposta, não decisão. |
+| Referenciada / in-use | Pelo menos um consumer mantém referência à release. | Não prova que a release anterior deixou de executar. |
+| Uso operacional | Release necessária a implantação, rollout, rollback ou reativação. | Fonte e critérios ainda precisam ser definidos. |
+| Protected | Preservada por uma regra de proteção. | Latest e in-use são propriedades independentes. |
+| Retained | Sem proteção obrigatória, mantida pela política de histórico. | Quantidade e/ou idade pendentes. |
+| Candidate | Fora das proteções e da retenção no cálculo observado. | Não autoriza DELETE. |
+| Deprecated | Release com restrição explícita de uso ou suporte. | Estado futuro, separado de candidate. |
 
-Publicar B não torna A automaticamente removível. É necessário recalcular uso e retenção.
+**Proposta anterior:** reconciler stateless que lê releases e consumers e recalcula a classificação. Labels e annotations são saída desse cálculo; não substituem referências nem a ordem autoritativa de publicação.
 
-## 6. Endpoint e payload recuperados
+O cálculo pode ser stateless, enquanto execução assíncrona, acompanhamento e futura carência exigem estado operacional. Esses requisitos não devem ficar ocultos sob o termo stateless.
 
-Uma proposta anterior utilizava `POST /api/v1/releases/reconcile` com seleção por flavor.
+## 5. Escopo e sequência de evolução recomendados
 
-Na sessão principal, a proposta passou a identificar a aplicação no caminho:
+| Etapa proposta | Entrega | Condição para avançar |
+| --- | --- | --- |
+| 1. Descoberta e dry-run | Plano por aplicação, com razões, ambiguidades e falhas de leitura. | Escopo autoritativo e contratos reais de entrada confirmados. |
+| 2. Classificação persistida | Atualização apenas da metadata gerenciada, com recuperação de falhas parciais. | Mesmas entradas geram a mesma classificação; remarcação validada. |
+| 3. Depreciação formal | Regras de novas referências, suporte e eventual carência. | Semântica aprovada e mecanismo capaz de aplicá-la. |
+| 4. Exclusão | Coleta coordenada, com revalidação e proteção do uso operacional. | Todos os caminhos de alteração de referências participam do protocolo. |
+
+A proposta inicial não inclui mudança na publicação nem exclusão de imagens do registry. É necessário decidir se o escopo futuro alcança apenas ConfigMaps ou também imagens e outros artefatos.
+
+## 6. Alternativas que precisam de decisão
+
+### 6.1 O que significa latest?
+
+| Alternativa | Vantagem | Limitação |
+| --- | --- | --- |
+| Maior `creationTimestamp` | Usa informação existente no catálogo. | Recriação de versão antiga a torna latest; empates precisam de tratamento. |
+| Ordem lógica atribuída pelo publisher | Expressa ordem de publicação independentemente da recriação do objeto. | Exige contrato e atribuição coordenada. |
+| Release explicitamente promovida | Separa publicação de escolha para consumo. | Introduz uma operação de promoção ainda não registrada como requisito. |
+
+**Recomendação desta revisão:** escolher pela semântica de republicação desejada. Manter proteção de todos os empates na simulação enquanto não houver uma ordem autoritativa única. Não ordenar hashes para inferir cronologia.
+
+### 6.2 Quanto histórico preservar?
+
+| Alternativa | Benefício | Questão a validar |
+| --- | --- | --- |
+| N mais recentes do catálogo, além das proteções obrigatórias | Conjunto recente previsível. | Pode não manter versões extras sem uso quando as N já são protegidas. |
+| N adicionais não protegidas | Reserva explícita de versões fora do uso atual. | Quantidade total varia com os consumers. |
+| Janela de idade | Preserva um horizonte temporal de recuperação. | Volume depende da frequência de publicação. |
+| Quantidade e idade combinadas | Combina reserva e horizonte temporal. | Definir se as regras se somam ou se restringem. |
+
+**Recomendação desta revisão:** escolher a semântica antes do número. O exemplo do apêndice adota N adicionais não protegidas apenas para demonstrar o cálculo.
+
+### 6.3 Marcação ou limpeza automática?
+
+**Proposta anterior e recomendação mantida:** começar somente com classificação. Exclusão exige coordenação entre publisher, alterações dos consumers e coletor; serializar apenas reconciles não cobre esses outros escritores.
+
+## 7. Fluxo e contrato operacional propostos
+
+1. Identificar aplicação e escopo autoritativo.
+2. Ler e validar releases e consumers, incluindo todas as páginas e namespaces necessários.
+3. Calcular latest, referências, proteções e retenção usando a política selecionada no servidor.
+4. Produzir plano com razões por release e indicação de entradas ambíguas ou inválidas.
+5. Em dry-run, retornar o resultado sem mutações.
+6. Em execução efetiva, aplicar somente metadata gerenciada e informar sucessos e pendências.
+7. Reexecutar após conflitos ou falhas para convergir.
+
+**Proposta anterior:**
 
 ```http
 POST /api/v1/applications/{application}/releases/reconcile
 Content-Type: application/json
 ```
-
-Payload recuperado da sessão:
 
 ```json
 {
@@ -129,77 +154,69 @@ Payload recuperado da sessão:
 }
 ```
 
-| Campo | Papel na proposta |
-| --- | --- |
-| application no caminho | Delimitar a aplicação reconciliada. |
-| trigger | Registrar o evento que motivou a execução. |
-| trigger.release | Identificar a release cuja publicação motivou o acionamento. |
-| policy | Selecionar a política; `safe` foi o exemplo discutido. |
-| dryRun | Calcular sem materializar alterações quando true. |
+O trigger explica o acionamento; não define latest. `safe` é um nome ilustrativo sem política aprovada. O histórico também continha `POST /api/v1/releases/reconcile` e dry-run como flavor; a proposta mais recente usa aplicação no caminho e flag separada.
 
-A proposta recuperada inclui resposta assíncrona `202 Accepted`. O schema de resposta, o mecanismo de acompanhamento e a definição exata de `safe` permanecem em aberto.
+A resposta `202 Accepted` foi proposta, mas faltam identificador de execução, consulta, resultados parciais e destino de falhas. **Recomendação desta revisão:** só fechar o contrato assíncrono junto desse acompanhamento e do comportamento de dry-run.
 
-Há duas formas de configurar simulação no histórico: flavor de dry-run na discussão anterior e `dryRun` separado no payload mais recente. O contrato final deve consolidar essa evolução.
+Para centenas de aplicações, definir limite de concorrência, coordenação entre instâncias, repetição de eventos, retries e isolamento de falhas. Não há fila ou lock já decidido.
 
-## 7. Centenas de aplicações e acionamentos
+Acionamentos propostos: publicação, criação/alteração/remoção de consumer, manual e reconciliação periódica opcional. Eventos de implantação também serão necessários se uso operacional participar da proteção.
 
-O requisito explicitado foi suportar muitas aplicações e diversos acionamentos do lifecycle manager.
+## 8. Riscos, hipóteses e como validar
 
-O endpoint por aplicação delimita o escopo do trabalho. A resposta assíncrona foi proposta, mas não foram recuperados detalhes suficientes para afirmar que fila, locks ou deduplicação já foram definidos.
+| Hipótese ou risco | Validação proposta | Critério observável |
+| --- | --- | --- |
+| Os selectors encontram todos os consumers. | Mapear clusters, shards, namespaces e parser real. | Nenhuma referência conhecida fica fora da leitura. |
+| Timestamp representa a ordem desejada. | Simular republicação antiga e empate. | Resultado coincide com a definição de latest aprovada. |
+| Referência desejada basta para preservar operação. | Migrar consumer com rollout pendente e testar rollback. | Release ainda necessária continua protegida antes de qualquer coleta. |
+| Labels podem ser usadas como fonte de verdade. | Interromper aplicação do plano no meio e ler pelo generator. | Metadata parcial não altera resolução autoritativa. |
+| Falha equivale a ausência de uso. | Simular erro de LIST, parsing e referência ausente. | Rodada não cria novas candidaturas nem exclui objetos. |
+| Repetição causa efeitos indevidos. | Repetir mesmas entradas e entregar evento antigo. | Classificação estável, sem PATCH semântico desnecessário. |
+| Exclusão corre com criação de referência. | Exercitar todos os caminhos de escrita concorrentes. | Garantia demonstrada ou coleta mantida desabilitada. |
+| Crescimento exige exclusão automática. | Medir catálogo, frequência de publicação e custo operacional. | Justificativa mensurável para a etapa de coleta. |
 
-Pontos a fechar:
-- Como coordenar chamadas simultâneas para a mesma aplicação.
-- Como permitir processamento de aplicações diferentes.
-- Como tratar repetição de eventos e tentativas após falha.
-- Como limitar concorrência e acompanhar execuções.
-- Como lidar com publicação ou mudança de consumer durante o reconcile.
+PATCH por objeto não torna a rodada inteira atômica. Controle de versão também não impede outro objeto de ganhar uma nova referência. O apêndice detalha esses limites com referências oficiais.
 
-## 8. Resiliência e acionamento
+## 9. Decisões pendentes, em ordem de dependência
 
-A intenção registrada é manter o mecanismo acionável sob demanda, inclusive após o Job publicar uma release, sem depender exclusivamente desse gatilho.
+| ID | Decisão | Desbloqueia |
+| --- | --- | --- |
+| D1 | Onde está o catálogo autoritativo e quais consumers, namespaces e clusters entram na leitura? Há cópias da mesma release? | Descoberta e índices corretos. |
+| D2 | Qual campo identifica a release e qual contrato resolve a referência? | Cálculo de uso. |
+| D3 | Última publicação ou última promoção? Como tratar recriação e empates? | Proteção de latest. |
+| D4 | Consumers desabilitados, rollout e rollback preservam quais releases? | Definição completa de proteção. |
+| D5 | Retenção por quantidade, idade ou ambas? N total ou N adicional? | Política e exemplos definitivos. |
+| D6 | Qual o schema de metadata e quem pode alterá-lo? | Persistência da classificação. |
+| D7 | Quais policies existem, como são versionadas e quem pode selecioná-las? | Contrato de execução reproduzível. |
+| D8 | Execução síncrona ou assíncrona? Como consultar, repetir e recuperar? | Endpoint e operação em escala. |
+| D9 | O que deprecated muda e como impedir novas referências, se necessário? | Depreciação formal. |
+| D10 | O que pode ser excluído e qual protocolo garante segurança entre escritores? | Coleta física. |
 
-Se o endpoint estiver indisponível, a retenção das releases é preferível à exclusão indevida. Uma nova execução poderá recalcular o estado.
+Nenhuma dessas decisões foi promovida a aprovação nesta revisão. Os nomes de campos, retenção de duas versões e regras de consumers desabilitados do apêndice continuam ilustrativos.
 
-A preferência por feature flag permite interromper o mecanismo enquanto um problema é corrigido. As proteções de latest e in-use devem valer independentemente do flavor.
+## 10. Próximos passos e critérios de encerramento do brainstorm
 
-O objetivo de conservar tudo diante de falhas ainda exige definir o comportamento para falhas parciais durante uma execução; o registro não afirma que atualizações de vários ConfigMaps sejam atômicas.
+- [ ] Confirmar D1–D4 com exemplos reais de release, consumer e migração.
+- [ ] Escolher D5 e executar uma tabela de simulação sobre um catálogo representativo.
+- [ ] Definir D6–D8 e demonstrar dry-run, repetição e recuperação de falha parcial.
+- [ ] Confirmar se há demanda medida para D9–D10; mantê-las como evolução se ainda não houver.
+- [ ] Registrar responsáveis e datas das decisões tomadas.
 
-## 9. Questões em aberto
+O brainstorm estará pronto para virar uma especificação da primeira etapa quando houver escopo autoritativo, definição de latest, proteções, semântica de retenção e cenários esperados aprovados. A entrega de classificação pode avançar sem uma política de exclusão pronta, desde que essa fronteira permaneça explícita.
 
-- O critério de creationTimestamp atende republicações de versões antigas? Como desempatar timestamps iguais?
-- Quais namespaces e consumers compõem o escopo autoritativo de cada aplicação?
-- Como tratar referência de consumer a uma release ausente?
-- Consumers desabilitados continuam protegendo suas releases?
-- Quais são os nomes definitivos de labels e annotations?
-- Quais estados são exclusivos e quais propriedades são independentes?
-- Qual a definição de cada policy/flavor e sua versão?
-- Quantas releases históricas preservar?
-- Depreciação apenas marca ou também permite exclusão? Existe período de espera?
-- Como revalidar uso/latest antes de qualquer exclusão?
-- Como garantir execução consistente diante de concorrência e leituras incompletas?
-- Qual o contrato da resposta assíncrona e de consulta de execução?
-- Como aplicar feature flag, retries e recuperação de falhas parciais?
+## 11. Origem, histórico e referências
 
-## 10. Próximos passos
+- Sessão “Política de depreciação”, de 29/09/2026, com antecedentes sobre ConfigMaps imutáveis e reconciliação sob demanda de setembro de 2026.
+- 30/09/2026: registro estruturado e aprofundamento do algoritmo; sugestões técnicas preservadas no apêndice.
+- 03/10/2026: reorganização por problema, regras, alternativas, riscos e decisões; novas recomendações identificadas no texto. Nenhuma nova decisão de produto aprovada.
+- [API de ConfigMap — Kubernetes](https://kubernetes.io/docs/reference/kubernetes-api/core/config-map-v1/).
+- [Conceitos da API e resource versions — Kubernetes](https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions).
 
-- [ ] Fechar o contrato de metadata e os estados.
-- [ ] Validar o critério de latest e seu desempate.
-- [ ] Consolidar policy/flavor e dryRun no contrato HTTP.
-- [ ] Definir o escopo de leitura dos consumers.
-- [ ] Definir coordenação por aplicação e acompanhamento assíncrono.
-- [ ] Implementar primeiro cálculo e dry-run.
-- [ ] Validar remarcação após publicação e migração de consumers.
-- [ ] Validar invariantes de proteção antes de habilitar exclusão.
-
-## Origem
-
-Sessão “Política de depreciação”, de 29/09/2026, com antecedentes relacionados às discussões de ConfigMaps imutáveis e reconciliação sob demanda de setembro de 2026. Perguntas adicionais desta organização são apresentadas como questões em aberto, não como decisões da sessão.
-
-## 11. Aprofundamento: algoritmo de classificação e remarcação
+## Apêndice A — Proposta técnica de 30/09/2026
 
 > Proposta detalhada acrescentada em 30/09/2026. Desenvolve o algoritmo recuperado; nomes novos de metadata, regras de empate e mecanismos de coordenação abaixo são sugestões para validação, não decisões anteriores.
 
-### 11.1 O ConfigMap não descobre seu próprio estado
+### A.1 O ConfigMap não descobre seu próprio estado
 
 O lifecycle manager calcula o estado comparando todos os releases e consumers da mesma aplicação. Um ConfigMap isolado não informa se é latest ou se está em uso.
 
@@ -211,7 +228,7 @@ As fontes de verdade propostas são:
 
 As labels de lifecycle são saída do cálculo. Não se deve acreditar em uma label antiga `latest=true` para decidir quem é latest hoje.
 
-### 11.2 Contrato ilustrativo de entrada
+### A.2 Contrato ilustrativo de entrada
 
 Exemplo simplificado com campos diretos em data. Se os valores reais estiverem em YAML/JSON dentro de uma chave do ConfigMap, o parser precisa extrair os mesmos campos desse conteúdo.
 
@@ -255,7 +272,7 @@ O campo release contém a versão completa. O lookup não compara apenas `v1.0.0
 
 Para esta proposta, proteger também consumers desabilitados: enquanto a referência existir, preservar a capacidade de reativá-los.
 
-### 11.3 Descoberta e validação
+### A.3 Descoberta e validação
 
 Para a aplicação simulacao, consultar:
 - Releases com selector `type=release,application=simulacao`.
@@ -282,7 +299,7 @@ Se houver catálogo replicado em vários clusters, o índice deve considerar a i
 
 Referência ausente, parsing inválido ou leitura incompleta: retornar erro de validação e não marcar candidatas nem executar exclusão naquela rodada. Não interpretar erro como zero consumers.
 
-### 11.4 Como calcular latest
+### A.4 Como calcular latest
 
 Ordenar pelo timestamp de criação do objeto no catálogo autoritativo, em ordem decrescente:
 
@@ -299,7 +316,7 @@ A release enviada no trigger não é automaticamente latest: um evento antigo po
 
 Importante: recriar uma versão antiga gera um novo creationTimestamp. Nesse critério, ela passa a ser latest. Se isso não representar a semântica desejada, definir publicação lógica com sequência autoritativa antes de implementar.
 
-### 11.5 Como calcular in-use
+### A.5 Como calcular in-use
 
 Percorrer todos os consumers e usar sua referência completa:
 
@@ -321,7 +338,7 @@ Isso representa **referenciada na configuração desejada**. Não demonstra que 
 
 Para remoção física, a plataforma precisa definir se também protege releases ainda implantadas, em rollback ou com rollout pendente. Uma mudança no consumer não encerra imediatamente o uso operacional anterior.
 
-### 11.6 Política de retenção concreta para a simulação
+### A.6 Política de retenção concreta para a simulação
 
 Para tornar o exemplo executável conceitualmente, usar uma política ilustrativa:
 - Proteger latest e todas as releases referenciadas.
@@ -345,7 +362,7 @@ Tabela de decisão, na ordem abaixo:
 
 Latest e in-use são propriedades independentes; state resume a decisão da política.
 
-### 11.7 Pseudocódigo do cálculo
+### A.7 Pseudocódigo do cálculo
 
 ```python
 def calculate_plan(releases, consumers, keep_unused=2):
@@ -414,7 +431,7 @@ def calculate_plan(releases, consumers, keep_unused=2):
 
 O cálculo não usa as marcações antigas como entrada. Rodadas repetidas com o mesmo catálogo, consumers e política produzem a mesma classificação.
 
-### 11.8 O que é escrito em cada ConfigMap
+### A.8 O que é escrito em cada ConfigMap
 
 Contrato sugerido para materializar o plano:
 
@@ -439,7 +456,7 @@ Atualizar somente as chaves de lifecycle gerenciadas pelo reconciler:
 
 Mesmo com immutable=true, metadata pode ser modificada. Referência: https://kubernetes.io/docs/reference/kubernetes-api/core/config-map-v1/
 
-### 11.9 Exemplo completo de remarcação
+### A.9 Exemplo completo de remarcação
 
 Considere publicações em ordem A, B, C, D, E:
 - A = v1.0.0-a111111
@@ -477,7 +494,7 @@ Depois, se cliente-1 sair de B mas cliente-2 permanecer, B continua in-use. Só 
 
 Se cliente-3 migrar de D para F, os não protegidos mais recentes passam a ser E e D: D vira retained e C vira candidate. A classificação de uma release pode mudar devido à alteração de um consumer de outra release.
 
-### 11.10 Aplicação do plano e falhas parciais
+### A.10 Aplicação do plano e falhas parciais
 
 Calcular e validar todo o plano antes de escrever. dry-run retorna esse plano sem PATCH.
 
@@ -494,7 +511,7 @@ O lock do reconciler não bloqueia automaticamente o Job publisher nem alteraç�
 
 Referência para controle de versões: https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions
 
-### 11.11 Por que candidate não autoriza DELETE sozinho
+### A.11 Por que candidate não autoriza DELETE sozinho
 
 Uma release pode ganhar um consumer após o cálculo. Reler antes do DELETE reduz a janela, mas não elimina a corrida entre leitura de consumers e exclusão da release.
 
@@ -509,7 +526,7 @@ Portanto, a versão inicial proposta somente classifica. Para garantir exclusão
 
 Um futuro estado deprecated pode servir para impedir novas referências antes de coletar, desde que o mecanismo de validação das referências participe do protocolo. Uma label isolada não cria esse bloqueio.
 
-### 11.12 Acionamentos necessários para manter o estado atualizado
+### A.12 Acionamentos necessários para manter o estado atualizado
 
 Acionar reconcile:
 - Após publicação de uma release.
@@ -519,7 +536,7 @@ Acionar reconcile:
 
 Se o único gatilho for publicação, as marcações de in-use podem ficar antigas entre publicações. Isso é aceitável apenas como visualização eventual; nunca deve fundamentar exclusão sem recalcular.
 
-### 11.13 Cenários de validação do algoritmo
+### A.13 Cenários de validação do algoritmo
 
 | Cenário | Resultado esperado |
 | --- | --- |
