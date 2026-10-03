@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "templateVersion": "1.0.0",
+  "name": "application-summary",
+  "description": "Application summary from immutable host props",
+  "argoCdVersion": "3.5.3",
+  "profile": "resource-tab",
+  "registration": {
+    "group": "argoproj.io",
+    "kind": "Application",
+    "tabTitle": "Application summary"
+  },
+  "dataSource": "host-props",
+  "origin": {
+    "templateSha256": "8f9bda368a7b5d2e2e4cf31d3362cb7f1850a6ed623cd60a8c259cab7bbfc73e",
+    "contractRevision": "8f9bda368a7b5d2e2e4cf31d3362cb7f1850a6ed623cd60a8c259cab7bbfc73e",
+    "adaptations": []
+  },
+  "compatibility": {
+    "locallySupported": [
+      "3.5.3"
+    ],
+    "integrated": []
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "results": [
+    {
+      "width": 390,
+      "height": 844,
+      "title": "Extension preview",
+      "bodyText": "Context inspectorRead-only Application contextHost contextApplicationexample-applicationNamespaceargocdProjectdefaultHealthHealthyResourceexample-applicationKindApplicationTree nodes1Context is read-only. This extension does not call remote services.",
+      "bodyOverflowX": false,
+      "rootBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "top": 0,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "extensionBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 240,
+        "top": 0,
+        "right": 320,
+        "bottom": 240,
+        "left": 0
+      },
+      "extensionHeight": 240,
+      "extensionScrollHeight": 503,
+      "extensionOverflow": "auto",
+      "themeColor": "rgb(31, 41, 55)",
+      "controls": [],
+      "label": "narrow",
+      "fixture": "valid",
+      "panel": {
+        "width": 320,
+        "height": 240
+      },
+      "scroll": {
+        "scrollTop": 263,
+        "canReachBottom": true
+      }
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "title": "Extension preview",
+      "bodyText": "Context inspectorRead-only Application contextHost contextApplicationexample-applicationNamespaceargocdProjectdefaultHealthHealthyResourceexample-applicationKindApplicationTree nodes1Context is read-only. This extension does not call remote services.",
+      "bodyOverflowX": false,
+      "rootBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 800,
+        "top": 0,
+        "right": 1280,
+        "bottom": 800,
+        "left": 0
+      },
+      "extensionBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1100,
+        "height": 600,
+        "top": 0,
+        "right": 1100,
+        "bottom": 600,
+        "left": 0
+      },
+      "extensionHeight": 600,
+      "extensionScrollHeight": 600,
+      "extensionOverflow": "auto",
+      "themeColor": "rgb(237, 242, 247)",
+      "controls": [],
+      "label": "wide-dark",
+      "fixture": "valid",
+      "panel": {
+        "width": 1100,
+        "height": 600
+      },
+      "scroll": {
+        "scrollTop": 0,
+        "canReachBottom": true
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "title": "Extension preview",
+      "bodyText": "Context inspectorRead-only Application contextNo context supplied by the host.",
+      "bodyOverflowX": false,
+      "rootBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "top": 0,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "extensionBounds": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 240,
+        "top": 0,
+        "right": 320,
+        "bottom": 240,
+        "left": 0
+      },
+      "extensionHeight": 240,
+      "extensionScrollHeight": 240,
+      "extensionOverflow": "auto",
+      "themeColor": "rgb(31, 41, 55)",
+      "controls": [],
+      "label": "narrow-absent",
+      "fixture": "absent",
+      "panel": {
+        "width": 320,
+        "height": 240
+      },
+      "scroll": {
+        "scrollTop": 0,
+        "canReachBottom": true
+      }
+    }
+  ],
+  "errors": []
+}

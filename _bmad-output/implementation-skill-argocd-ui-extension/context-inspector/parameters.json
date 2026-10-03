@@ -1,0 +1,12 @@
+{
+  "name": "context-inspector",
+  "description": "Read-only Application context",
+  "argoCdVersion": "3.5.3",
+  "profile": "resource-tab",
+  "registration": {
+    "group": "argoproj.io",
+    "kind": "Application",
+    "tabTitle": "Context inspector"
+  },
+  "dataSource": "host-props"
+}

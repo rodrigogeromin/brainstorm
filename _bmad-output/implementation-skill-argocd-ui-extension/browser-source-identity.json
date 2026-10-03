@@ -1,0 +1,24 @@
+{
+  "project": "context-inspector",
+  "kind": "local-preview-only",
+  "uiIdenticalToFinalProject": true,
+  "files": {
+    "src/app/Extension.tsx": "16f81ee5a22b0a92698a09a31e22d1d64a0c4234d470c0e7b1b52f1d929c18f9",
+    "src/features/context/components/ContextSummary.tsx": "0c89598a9d63de2fc9eee7a3e2025b4d4a0b667a9b41702da6a1b545b56d61ca",
+    "src/styles/extension.css": "d1fa0fa7f491fac81fcfd89d62ba311997c88b93182d5921709572eea93a5625",
+    "dev/fixtures/context.ts": "2b8aadc0d0e867f7e6c065f42fc414ad07159d2f53180a02997d63adcc8db5cc",
+    "dev/main.tsx": "e492d54d16e1cf9b38e1e8d406cc9f932997b449a9c5404ba27cc8aaa8a2cd8b",
+    "dev/preview.css": "ec40735f31171aa82f416fb2d1336bad93f67b835c492f2cb17ff882c9e6fb16"
+  },
+  "postReviewProject": "/tmp/argocd-ui-extension-reviewed-p9hmck79/context-inspector",
+  "postReviewIdentity": {
+    "project": "context-inspector",
+    "target": "3.5.3",
+    "templateVersion": "1.0.0",
+    "templateRevision": "8f9bda368a7b5d2e2e4cf31d3362cb7f1850a6ed623cd60a8c259cab7bbfc73e",
+    "sourceRevision": "2c379100c725c423eb0ce9ab339e7caf519744db16bba0dbdf8fba1fa93ac769",
+    "bundleSha256": "19c06868f4c4a34372dece3da05e67f3697fd1a7c44f919d406609bbab663c0d",
+    "packageSha256": "c5a564dc13c17519c73da8f624b0a124f70c57c88b307640337b620e2ff1c07f"
+  },
+  "postReviewUiUnchanged": true
+}

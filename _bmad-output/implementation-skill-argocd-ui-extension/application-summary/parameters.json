@@ -1,0 +1,12 @@
+{
+  "name": "application-summary",
+  "description": "Application summary from immutable host props",
+  "argoCdVersion": "3.5.3",
+  "profile": "resource-tab",
+  "registration": {
+    "group": "argoproj.io",
+    "kind": "Application",
+    "tabTitle": "Application summary"
+  },
+  "dataSource": "host-props"
+}

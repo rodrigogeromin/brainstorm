@@ -1,0 +1,7 @@
+#argocd-ext-__EXTENSION_NAME__ { box-sizing: border-box; max-width: 100%; height: 100%; min-height: 0; overflow: auto; padding: 1rem; color: inherit; background: transparent; overflow-wrap: anywhere; font-family: inherit; }
+#argocd-ext-__EXTENSION_NAME__ h1 { font-size: 1.25rem; margin: 0 0 .75rem; }
+#argocd-ext-__EXTENSION_NAME__ h2 { font-size: 1.1rem; margin: 1rem 0 .5rem; }
+#argocd-ext-__EXTENSION_NAME__ p { line-height: 1.5; }
+#argocd-ext-__EXTENSION_NAME__ dl { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr); gap: .5rem 1rem; }
+#argocd-ext-__EXTENSION_NAME__ dt { font-weight: 600; }
+#argocd-ext-__EXTENSION_NAME__ dd { margin: 0; }

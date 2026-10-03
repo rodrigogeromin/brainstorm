@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-03T23:37:56.036Z",
+  "environment": {
+    "node": "v26.7.0",
+    "npm": "11.19.0",
+    "platform": "linux"
+  },
+  "identity": {
+    "project": "context-inspector",
+    "target": "3.5.3",
+    "templateVersion": "1.0.0",
+    "templateRevision": "8f9bda368a7b5d2e2e4cf31d3362cb7f1850a6ed623cd60a8c259cab7bbfc73e",
+    "sourceRevision": "2c379100c725c423eb0ce9ab339e7caf519744db16bba0dbdf8fba1fa93ac769",
+    "bundleSha256": "19c06868f4c4a34372dece3da05e67f3697fd1a7c44f919d406609bbab663c0d",
+    "packageSha256": "c5a564dc13c17519c73da8f624b0a124f70c57c88b307640337b620e2ff1c07f"
+  },
+  "configuration": {
+    "status": "passed"
+  },
+  "artifacts": {
+    "status": "validated",
+    "reason": null
+  },
+  "checks": [
+    {
+      "command": "npm run typecheck",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run lint",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run test",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run build",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run package",
+      "status": "passed",
+      "exitCode": 0
+    },
+    {
+      "command": "npm run harness",
+      "status": "passed",
+      "exitCode": 0
+    }
+  ],
+  "harness": {
+    "status": "passed",
+    "kind": "simulated host globals; not Argo CD integration"
+  },
+  "integration": {
+    "status": "not-run",
+    "reason": "No exact 3.5.3 host was installed/tested by local validation"
+  },
+  "integratedVersions": [],
+  "releaseComplete": false
+}

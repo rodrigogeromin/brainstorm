@@ -15,3 +15,7 @@ A [memória da sessão](../_bmad-output/brainstorm-skill-argocd-ui-extension/.me
 Evolução: [padrão React proposto para os projetos](../_bmad-output/brainstorm-skill-argocd-ui-extension/padrao-projeto.md), com organização por funcionalidades e integração específica com Argo CD.
 
 Planejamento: [PRD final](../_bmad-output/prd-skill-argocd-ui-extension/prd-skill-argocd-ui-extension.md) e [índice dos ADRs](../_bmad-output/architecture-skill-argocd-ui-extension/README.md). As escolhas propostas estão identificadas; compatibilidade exige validação executável no host.
+
+## Implementação local
+
+Skill, template e gerador versionados em [skills/argocd-ui-extension](../skills/argocd-ui-extension/SKILL.md). [Resultados e evidências de dois projetos](../_bmad-output/implementation-skill-argocd-ui-extension/implementation.md): checks locais/harness e preview passaram; integração real no Argo CD 3.5.3 permanece not-run e a release não está certificada.
