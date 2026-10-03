@@ -1,7 +1,7 @@
 # Skill para construção de projetos Argo CD UI Extension
 
 - Data: 03/10/2026.
-- Status: em exploração.
+- Status: pesquisa concluída; PRD e decisões de arquitetura documentados, implementação pendente.
 - Modalidade: pesquisa e brainstorm autônomos, avulsos.
 
 Objetivo: acelerar a criação recorrente de extensões com práticas verificadas em projetos existentes.
@@ -13,3 +13,5 @@ A [memória da sessão](../_bmad-output/brainstorm-skill-argocd-ui-extension/.me
 [Visão visual da pesquisa](../_bmad-output/brainstorm-skill-argocd-ui-extension/brainstorm.html).
 
 Evolução: [padrão React proposto para os projetos](../_bmad-output/brainstorm-skill-argocd-ui-extension/padrao-projeto.md), com organização por funcionalidades e integração específica com Argo CD.
+
+Planejamento: [PRD final](../_bmad-output/prd-skill-argocd-ui-extension/prd-skill-argocd-ui-extension.md) e [índice dos ADRs](../_bmad-output/architecture-skill-argocd-ui-extension/README.md). As escolhas propostas estão identificadas; compatibilidade exige validação executável no host.
