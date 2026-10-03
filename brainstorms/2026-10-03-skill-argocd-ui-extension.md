@@ -11,3 +11,5 @@ O [registro completo da pesquisa](../_bmad-output/brainstorm-skill-argocd-ui-ext
 A [memória da sessão](../_bmad-output/brainstorm-skill-argocd-ui-extension/.memlog.md) preserva as descobertas e a orientação do usuário.
 
 [Visão visual da pesquisa](../_bmad-output/brainstorm-skill-argocd-ui-extension/brainstorm.html).
+
+Evolução: [padrão React proposto para os projetos](../_bmad-output/brainstorm-skill-argocd-ui-extension/padrao-projeto.md), com organização por funcionalidades e integração específica com Argo CD.

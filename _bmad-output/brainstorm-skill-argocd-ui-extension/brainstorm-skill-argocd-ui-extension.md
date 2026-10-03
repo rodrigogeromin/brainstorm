@@ -7,13 +7,15 @@ status: em-exploracao
 
 # Skill para construção de projetos Argo CD UI Extension
 
-Pesquisa autônoma e avulsa. Objetivo registrado: velocidade e assertividade na criação recorrente de extensões. Restrição do usuário: derivar a base de implementações existentes, sem inventar um padrão.
+Pesquisa autônoma e avulsa. Objetivo registrado: velocidade e assertividade na criação recorrente de extensões. Orientação inicial: derivar a base de implementações existentes. Evolução em 03/10/2026: o usuário solicitou um padrão local baseado em organização React, com adaptação ao Argo CD.
 
-## 1. Conclusão sustentada pela amostra
+## 1. Conclusão sustentada pela amostra e evolução da direção
 
 Há implementações reutilizáveis e um template público. A amostra não revela uma estrutura universal de projeto: o contrato com o Argo CD é mais consistente do que nomes de pastas, ferramentas e dependências.
 
-**Recomendação derivada:** construir a futura skill como orientação para selecionar e adaptar uma base existente, com validação para a versão alvo. Rollout é a referência com código de integração mais bem inspecionado nesta rodada; Metrics cobre UI com backend e proxy. O template público continua candidato, mas seu conteúdo não foi suficientemente recuperado para recomendá-lo como scaffold pronto.
+**Direção atual:** estabelecer uma base React única para a equipe, organizada por funcionalidades, e concentrar registro, contratos do host e build de extensão na integração com Argo CD. A pesquisa inicial passa a fundamentar esse template, em vez de selecionar uma árvore diferente para cada novo projeto.
+
+O [padrão de projeto proposto](padrao-projeto.md) define diretórios, responsabilidades, preview local, bundle instalado, comandos e critérios de validação. Ele adapta a organização do Bulletproof React e os contratos observados no Rollout/Metrics; não afirma ser um padrão oficial do React ou Argo CD.
 
 A pesquisa não encontrou, nesta amostra, uma skill pronta de Codex dedicada a esse fluxo. Isso não demonstra que ela inexista em outros catálogos.
 
@@ -64,8 +66,8 @@ A indicação de instalação com force e menção a React antigo são sinais de
 | Artefato | JS com prefixo extension, instalado no servidor. | Verificar saída e conteúdo do pacote. |
 | Distribuição | Installer por init container; pacote resources. | Reutilizar o contrato do installer. |
 | Backend | Metrics e Assistant usam proxy. | Configurar apenas quando necessário. |
-| Pastas | ui, src ou extensions aninhado. | Preservar a base escolhida; não declarar um layout universal. |
-| Package manager | Yarn no Assistant/Metrics; pnpm-lock no Rollout. | Manter gestor e lockfile coerentes com a base. |
+| Pastas | ui, src ou extensions aninhado. | Adotar a árvore local documentada em padrao-projeto.md; origem e adaptação explícitas. |
+| Package manager | Yarn no Assistant/Metrics; pnpm-lock no Rollout. | Proposta local de npm e package-lock; preferência da equipe pode substituir ambos. |
 | Bibliotecas visuais | Dependências específicas de domínio. | Copiar somente as necessárias à extensão. |
 
 A [documentação de UI Extensions](https://argo-cd.readthedocs.io/en/stable/developer-guide/extensions/ui-extensions/) define registro e entrega de JS no argocd-server. A assinatura da API precisa ser conferida na versão alvo, especialmente quando exemplos e assinaturas publicados divergem.
@@ -86,16 +88,9 @@ O antigo [argocd-extensions](https://github.com/argoproj-labs/argocd-extensions)
 
 ## 8. Como transformar a evidência em skill
 
-Esta seção é recomendação para codificar práticas observadas; não descreve uma skill upstream existente nem aprova implementação.
+A skill deverá gerar projetos a partir do [template local proposto](padrao-projeto.md), validado na versão alvo, e adaptar nome, ponto de extensão e fonte de dados. A organização React será reutilizada; o contrato do host continuará específico da versão.
 
-1. Receber versão alvo, ponto da UI, recurso/group/kind quando aplicável, origem dos dados e instalação desejada.
-2. Selecionar referência e revisão compatíveis, registrando origem e licença.
-3. Reutilizar build, registro e pacote da base; adaptar nomes e comportamento de domínio.
-4. Incluir integração de proxy quando o caso exigir backend.
-5. Executar os comandos reais da base e verificar o pacote gerado.
-6. Demonstrar carregamento e interação na versão alvo antes de considerar o projeto validado.
-
-Na anatomia convencional de skills, `SKILL.md` concentra seleção e fluxo; references guarda diferenças de versão e exemplos; assets contém a base validada; scripts automatiza apenas operações repetitivas comprovadas. A escolha dessas peças é uma adaptação para Codex, distinta do padrão upstream das extensões.
+A mudança de direção foi solicitada pelo usuário. Os nomes de diretórios e comandos são propostas explícitas, baseadas nas referências, e ainda dependem de validação executável. Não foi criada uma skill ou implementação do template nesta rodada.
 
 ## 9. Experimentos e critérios de sucesso propostos
 
@@ -116,6 +111,8 @@ Medir tempo até primeira renderização válida, correções manuais de scaffol
 - Método de instalação e publicação já adotado.
 - Referência/tag a fixar após validação executável.
 
-**Direção recomendada:** validar uma extensão mínima na versão da equipe usando os contratos observados no Rollout; incorporar Metrics quando houver backend. Só então extrair a base para a skill. Não implementar agora um gerador genérico com várias combinações ainda não testadas.
+**Direção recomendada:** validar a estrutura React proposta com uma extensão mínima na versão da equipe, depois extrair o template executável para a skill. Rollout fundamenta registro/build; Metrics fundamenta integrações com backend quando necessárias.
 
-A rodada de pesquisa foi concluída; o brainstorm permanece em exploração porque faltam contexto alvo e experimento. Não houve criação de skill, implantação ou aprovação de escolhas técnicas.
+## 11. Evolução registrada
+
+Em 03/10/2026, o usuário pediu a criação de um padrão local a partir da reflexão de que uma UI Extension é um projeto React adaptado ao host. A decisão de padronizar está registrada. A proposta técnica está em [padrao-projeto.md](padrao-projeto.md); implementação, ferramentas exatas e compatibilidade ainda precisam de validação.
