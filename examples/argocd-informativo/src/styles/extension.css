@@ -1,0 +1,8 @@
+#argocd-ext-argocd-informativo { box-sizing: border-box; max-width: 100%; height: 100%; min-height: 0; overflow: auto; padding: 1rem; color: inherit; background: transparent; overflow-wrap: anywhere; font-family: inherit; }
+#argocd-ext-argocd-informativo h1 { font-size: 1.25rem; margin: 0 0 .75rem; }
+#argocd-ext-argocd-informativo .notice { padding: .75rem 1rem; border-inline-start: .25rem solid #3b82f6; background: color-mix(in srgb, currentColor 7%, transparent); font-weight: 600; }
+#argocd-ext-argocd-informativo h2 { font-size: 1.1rem; margin: 1rem 0 .5rem; }
+#argocd-ext-argocd-informativo p { line-height: 1.5; }
+#argocd-ext-argocd-informativo dl { display: grid; grid-template-columns: minmax(5rem, 1fr) minmax(0, 2fr); gap: .5rem 1rem; }
+#argocd-ext-argocd-informativo dt { font-weight: 600; }
+#argocd-ext-argocd-informativo dd { margin: 0; }

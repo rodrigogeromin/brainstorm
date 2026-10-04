@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Argo CD extension generation parameters",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "description",
+    "argoCdVersion",
+    "profile"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 60
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "argoCdVersion": {
+      "const": "3.5.3"
+    },
+    "profile": {
+      "const": "resource-tab"
+    },
+    "registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "const": "argoproj.io",
+          "default": "argoproj.io"
+        },
+        "kind": {
+          "const": "Application",
+          "default": "Application"
+        },
+        "tabTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "default": {}
+    },
+    "dataSource": {
+      "const": "host-props",
+      "default": "host-props"
+    }
+  }
+}
