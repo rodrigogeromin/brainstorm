@@ -16,6 +16,6 @@ The generator supports audited resource tabs (including Application tabs), syste
 
 Production output is one `dist/resources/extension-__EXTENSION_NAME__.js` with scoped CSS. Host React globals and JSX mode derive from the recorded contract. The package contains only the extension resource. Choose an installer and environment-specific configuration before any cluster action; none is generated or applied automatically.
 
-Template changes do not silently update generated projects. Record domain adaptations in `origin.adaptations`; browser configuration is public and must never contain secrets.
+Template changes do not silently update generated projects. templateVersion records the scaffold origin; schema v2 contracts do not require it to match the installed template. Explicit migration preserves existing UI, tooling and provenance. Record domain adaptations in `origin.adaptations`; browser configuration is public and must never contain secrets.
 
-Runtime setup aligns the audited React/DOM/types and JSX mode before dependency installation. Customize src/features and src/app; visibility lives in src/argocd/visibility.ts. Open details uses host openFlyout; preview allows opening and closing its simulated flyout. Local checks do not establish integration.
+Runtime setup aligns the audited React/DOM/types and JSX mode before dependency installation. Customize src/features and src/app; visibility lives in src/argocd/visibility.ts. For Status Panel, Open details calls host openFlyout; for Top Bar, the host action opens the flyout and the extension component supplies its noninteractive label. Preview models the host control and allows opening/closing the simulated flyout. Local checks do not establish integration.

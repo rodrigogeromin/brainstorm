@@ -25,3 +25,7 @@ Fontes adicionais consultadas para composição da ação: ui/src/app/applicatio
 README e host-and-evidence.md remotos ainda descrevem instalação temporária. O usuário relata instalação persistente posterior. Sem inspeção da implantação ou interação no navegador nesta tarefa, não foi possível confirmar o artefato instalado ou seu comportamento real. A skill agora exige separar histórico, relato do usuário, persistência observada e teste de navegador. Relatórios locais continuam integration:not-run; gerar um bundle novo não certifica nem apaga a implantação anterior.
 
 Não houve implantação, publicação ou push nesta etapa. A migração isolada serve como teste da skill, não como atualização automática do catálogo.
+
+## Evolução posterior ao teste isolado
+
+A migração foi aplicada e publicada no repositório do catálogo (commit 710f231); a documentação de instalação foi atualizada e publicada em 44b8858. O [registro posterior](https://github.com/rodrigogeromin/argocd-catalog-ui-extension/blob/21d74e708151a2dd4b6f6faab1db1ccb65127b1f/references/host-and-evidence.md) documenta instalação persistente por init container em Argo CD 3.5.1 e hashes do bundle. A interação no navegador continua sem evidência. As afirmações anteriores sobre ausência de alteração/inspeção dizem respeito ao teste isolado, não ao estado posterior do catálogo.

@@ -1,4 +1,8 @@
-# Implementação local — Argo CD UI Extension
+# Implementação e evolução — Argo CD UI Extension
+
+Estado em 04/10/2026: schema v2/template 2.2.1, cinco perfis e auditoria por release. [Uso e capacidade atual](../brainstorm-skill-argocd-ui-extension/padrao-projeto.md) · [Correções e 21 testes](catalog-feedback.md). Os resultados abaixo preservam cada etapa; os sete testes e o alvo fixo da entrega inicial não descrevem a skill atual.
+
+## Entrega inicial — template 1.0.0
 
 Skill distribuível: `skills/argocd-ui-extension/`. Template 1.0.0, contrato/schema 1, alvo exato Argo CD 3.5.3. Integração real **not-run**; matriz integrada vazia; release inicial não concluída (SM-2).
 

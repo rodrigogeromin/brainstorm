@@ -7,7 +7,7 @@ paradigm: layered architecture
 scope: Template, geração e projetos React hospedados no Argo CD
 status: final
 created: 2026-10-03
-updated: 2026-10-03
+updated: 2026-10-04
 binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12]
 ---
 
@@ -174,6 +174,10 @@ Fontes web consultadas em 2026-10-03. Links de branches e documentação stable 
 
 ## Atualização de capacidade — 2026-10-04
 
+[Estado atual e evidências](../brainstorm-skill-argocd-ui-extension/padrao-projeto.md). As pendências e regras iniciais acima registram o planejamento original; este addendum descreve a implementação atual.
+
 O template 2.2 mantém schema v2 e acrescenta runtime/flyoutProps opcionais. Presets exatos 3.0.0, 3.5.1 e 3.5.3 derivam o lock e runtime reais; o preview usa render para React16 e createRoot para React18/19. Produção continua consumindo React externo. O coletor audit-host registra fontes/hashes sem declarar contrato revisado; o contrato depende da leitura da tag.
 
 Existe agora migração explícita de manifesto em saída nova: aliases v1 são convertidos, campos personalizados/proveniência preservados e evidência/integração invalidadas. O comando não substitui código personalizado. A adaptação dos arquivos portáveis e UI é feita por diff revisável. Esta atualização amplia a capacidade atual; os ADRs e decisões históricas permanecem como registro de seu momento.
+
+No template 2.2.1, Top Bar é label não interativo dentro da ação do host; preview/harness verificam ausência de controles aninhados. templateVersion permanece origem, não trava de compatibilidade; a migração mantém essa origem e registra validatorTemplate. Runtime setup aceita React em dependencies ou devDependencies sem substituir a toolchain customizada. O catálogo foi migrado e sua instalação persistente documentada; interação real no navegador segue não verificada.

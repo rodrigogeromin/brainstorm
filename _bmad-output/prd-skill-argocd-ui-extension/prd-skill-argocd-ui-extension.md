@@ -7,6 +7,9 @@ updated: 2026-10-03
 
 # PRD — Padrão, template e skill para Argo CD UI Extensions
 
+> Registro histórico de 03/10/2026. A implementação evoluiu para schema v2/template 2.2.1. Consulte o [estado atual, uso e evidências](../brainstorm-skill-argocd-ui-extension/padrao-projeto.md) antes de usar pendências ou restrições originais como descrição da skill instalada.
+
+
 ## 1. Propósito e visão
 
 Permitir que Rodrigo crie extensões React para Argo CD repetidamente, sem refazer organização, integração com o host, build e empacotamento. O produto reúne um padrão documentado, um template executável e uma skill que adapta esse template ao pedido e demonstra o que foi validado.

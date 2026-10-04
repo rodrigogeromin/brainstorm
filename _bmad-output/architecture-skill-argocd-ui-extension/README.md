@@ -2,6 +2,8 @@
 
 [Índice de arquitetura e regras](architecture-skill-argocd-ui-extension.md) · [PRD](../prd-skill-argocd-ui-extension/prd-skill-argocd-ui-extension.md)
 
+> ADRs históricos de 03/10/2026. Para a capacidade implementada, consulte o [estado atual](../brainstorm-skill-argocd-ui-extension/padrao-projeto.md) e o addendum de implementação no índice. O perfil de Application foi o ponto inicial; a skill atual inclui os cinco perfis de UI.
+
 Decisões adotadas derivam de requisitos ou contratos existentes; propostas são suposições revisáveis. Nenhuma decisão certifica implementação.
 
 | ID | Registro | Status |

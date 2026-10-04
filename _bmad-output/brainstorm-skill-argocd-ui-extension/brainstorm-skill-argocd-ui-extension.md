@@ -7,6 +7,9 @@ status: em-exploracao
 
 # Skill para construção de projetos Argo CD UI Extension
 
+> Registro histórico de 03/10/2026. A implementação evoluiu para schema v2/template 2.2.1. Consulte o [estado atual, uso e evidências](../brainstorm-skill-argocd-ui-extension/padrao-projeto.md) antes de usar pendências ou restrições originais como descrição da skill instalada.
+
+
 Pesquisa autônoma e avulsa. Objetivo registrado: velocidade e assertividade na criação recorrente de extensões. Orientação inicial: derivar a base de implementações existentes. Evolução em 03/10/2026: o usuário solicitou um padrão local baseado em organização React, com adaptação ao Argo CD.
 
 ## 1. Conclusão sustentada pela amostra e evolução da direção

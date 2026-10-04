@@ -22,3 +22,14 @@ Repositório para armazenar e desenvolver brainstorms de ideias, preservando con
 - **Arquivado**: discussão encerrada ou pausada.
 
 Ideias são propostas em evolução. Registre explicitamente quando uma hipótese se tornar uma decisão.
+
+## Skill Argo CD UI Extension
+
+A iniciativa evoluiu para uma skill executável de criação e migração de projetos React/TypeScript: schema v2, template 2.2.1, cinco perfis e contratos por release exata.
+
+- [Estado atual, uso e evidências](_bmad-output/brainstorm-skill-argocd-ui-extension/padrao-projeto.md).
+- [Apresentação HTML](_bmad-output/brainstorm-skill-argocd-ui-extension/brainstorm.html): slides com navegação por teclado e tela cheia.
+- [Skill e guias](skills/argocd-ui-extension/SKILL.md).
+- [Pesquisa e decisões](brainstorms/2026-10-03-skill-argocd-ui-extension.md).
+
+Presets auditados para Argo CD 3.0.0, 3.5.1 e 3.5.3; outras releases exigem auditoria/adaptação. Gates locais e instalação persistente são evidências separadas de interação real no host.
