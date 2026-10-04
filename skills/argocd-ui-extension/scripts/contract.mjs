@@ -1,7 +1,8 @@
 import {readFileSync} from 'node:fs';
+import {isDeepStrictEqual} from 'node:util';
 export const schema=JSON.parse(readFileSync(new URL('../references/parameters.schema.json',import.meta.url),'utf8'));
 export const schemaVersion=2;
-export const templateVersion='2.1.0';
+export const templateVersion='2.2.0';
 const methodsByProfile={
   'resource-tab':'registerResourceExtension',
   'system-level':'registerSystemLevelExtension',
@@ -27,15 +28,16 @@ export const contracts={
     'status-panel':'registerStatusPanelExtension(component, title, id, flyout?)',
     'top-bar-action':'registerTopBarActionMenuExt(component, title, id, flyout, shouldDisplay?, iconClassName?, isMiddle?)',
     'app-view':'registerAppViewExtension(component, title, icon)'
-  },props:propsByProfile},
+  },props:propsByProfile,lock:'yarn.lock',runtime:{react:'16.14.0',reactDom:'16.14.0',typesReact:'16.14.15',typesReactDom:'16.9.14'}},
   '3.5.3':{tag:'v3.5.3',globals:['React','ReactDOM','ReactJSXRuntime'],jsxMode:'automatic',methods:{
     'resource-tab':'registerResourceExtension(component, group, kind, tabTitle, opts?)',
     'system-level':'registerSystemLevelExtension(component, title, path, icon)',
     'status-panel':'registerStatusPanelExtension(component, title, id, flyout?)',
     'top-bar-action':'registerTopBarActionMenuExt(component, title, id, flyout, shouldDisplay?, iconClassName?, isMiddle?)',
     'app-view':'registerAppViewExtension(component, title, icon, shouldDisplay?)'
-  },props:propsByProfile}
+  },props:propsByProfile,lock:'pnpm-lock.yaml',runtime:{react:'19.2.6',reactDom:'19.2.6',typesReact:'19.2.14',typesReactDom:'19.2.3'}}
 };
+contracts['3.5.1']={...contracts['3.5.3'],tag:'v3.5.1'};
 function validate(value,rule,location){
   if(value===undefined&&Object.hasOwn(rule,'default'))value=rule.default;
   if(value===undefined)return value;
@@ -70,7 +72,7 @@ function contractFor(version,profile,input){
     if(!preset)throw new Error(`No preset host contract for Argo CD ${version}. Supply an audited hostContract from the exact official tag.`);
     if(!preset.methods[profile])throw new Error(`Profile ${profile} is unavailable in ${preset.tag}. Available profiles: ${Object.keys(preset.methods).join(', ')}`);
     const method=methodsByProfile[profile];
-    return {sourceKind:'official',tag:preset.tag,sources:sourceFiles.map(file=>`https://github.com/argoproj/argo-cd/blob/${preset.tag}/${file}`),profile,method,signature:preset.methods[profile],props:preset.props[profile],globals:preset.globals,jsxMode:preset.jsxMode,argumentMap:mapsByProfile[profile].filter(token=>token!=='callback.shouldDisplay'||preset.methods[profile].includes('shouldDisplay'))};
+    return {sourceKind:'official',tag:preset.tag,sources:sourceFiles.map(file=>file==='ui/pnpm-lock.yaml'?`ui/${preset.lock}`:file).map(file=>`https://github.com/argoproj/argo-cd/blob/${preset.tag}/${file}`),profile,method,signature:preset.methods[profile],props:preset.props[profile],globals:preset.globals,jsxMode:preset.jsxMode,runtime:preset.runtime,flyoutProps:['status-panel','top-bar-action'].includes(profile)?['application','tree']:[],argumentMap:mapsByProfile[profile].filter(token=>token!=='callback.shouldDisplay'||preset.methods[profile].includes('shouldDisplay'))};
   })();
   const c=validate(raw,schema.properties.hostContract,'parameters.hostContract');
   if(c.sourceKind==='official'&&c.tag!==`v${version}`)throw new Error(`hostContract.tag must be v${version} to match argoCdVersion ${version}`);
@@ -78,7 +80,8 @@ function contractFor(version,profile,input){
   if(c.profile!==profile)throw new Error(`hostContract.profile must match selected profile ${profile}`);
   if(c.sourceKind==='official')c.sources.forEach(url=>officialSource(url,c.tag));
   else for(const url of c.sources){let parsed;try{parsed=new URL(url);}catch{throw new Error(`Custom host contract source must be an HTTPS source URL: ${url}`);}if(parsed.protocol!=='https:')throw new Error(`Custom host contract source must be an HTTPS source URL: ${url}`);}
-  for(const required of ['extensions-service.ts','index.tsx','package.json','pnpm-lock.yaml'])if(!c.sources.some(url=>url.endsWith(required)))throw new Error(`hostContract.sources must include official evidence for ${required}`);
+  for(const required of ['extensions-service.ts','index.tsx','package.json'])if(!c.sources.some(url=>url.endsWith(required)))throw new Error(`hostContract.sources must include official evidence for ${required}`);
+  if(!c.sources.some(url=>/\/(?:yarn.lock|pnpm-lock.yaml|package-lock.json)$/.test(url)))throw new Error('hostContract.sources must include an existing yarn, pnpm or npm lockfile');
   if(c.method!==methodsByProfile[profile])throw new Error(`hostContract.method ${c.method} does not match profile ${profile} method ${methodsByProfile[profile]}`);
   if(!c.signature.startsWith(`${c.method}(`))throw new Error('hostContract.signature must document the selected method and its arguments');
   if(c.props.some(prop=>!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(prop)))throw new Error('hostContract.props must use valid TypeScript property names');
@@ -100,40 +103,35 @@ function contractFor(version,profile,input){
     if(c.argumentMap[index]!==parameterToken[parameter]&&!(c.argumentMap[index]==='undefined'&&optional))throw new Error(`hostContract.argumentMap[${index}] must map signature parameter ${parameter}`);
   }
   for(let index=c.argumentMap.length;index<signatureArgs.length;index++)if(!/[?=]/.test(signatureArgs[index]))throw new Error(`hostContract.argumentMap is missing required signature parameter ${signatureArgs[index]}`);
-  const required={
-    'resource-tab':['component','registration.group','registration.kind','registration.tabTitle'],
-    'system-level':['component','registration.title','registration.path','registration.icon'],
-    'status-panel':['component','registration.title','registration.id'],
-    'top-bar-action':['component','registration.title','registration.id','component.flyout'],
-    'app-view':['component','registration.title','registration.icon']
-  }[profile];
-  let previous=-1;
-  for(const token of required){const index=c.argumentMap.indexOf(token);if(index<=previous)throw new Error(`hostContract.argumentMap must include ${token} in profile argument order`);previous=index;}
   if(c.argumentMap.includes('callback.shouldDisplay')&&!c.signature.includes('shouldDisplay'))throw new Error('hostContract.argumentMap includes shouldDisplay but signature does not');
   if(!c.globals.includes('React'))throw new Error('hostContract.globals must include React');
   if(c.jsxMode==='automatic'&&!c.globals.includes('ReactJSXRuntime'))throw new Error('Automatic JSX mode requires ReactJSXRuntime in hostContract.globals');
+  if(c.flyoutProps?.some(prop=>!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(prop)))throw new Error('hostContract.flyoutProps must use valid property names');
+  if(c.runtime&&c.runtime.react.split('.')[0]!==c.runtime.reactDom.split('.')[0])throw new Error('Host React and ReactDOM major versions must match');
   return c;
 }
 export function normalize(input){
   const p=validate(input,schema,'parameters');if(!p)throw new Error('Parameters required');
   const contract=contractFor(p.argoCdVersion,p.profile,p.hostContract);
-  const fields={
+  const candidates={
     'resource-tab':['group','kind','tabTitle','icon'],
     'system-level':['title','path','icon'],
     'status-panel':['title','id','flyout'],
     'top-bar-action':['title','id','icon','isMiddle',...(contract.argumentMap.includes('callback.shouldDisplay')?['shouldDisplay']:[]),'flyout'],
     'app-view':['title','icon',...(contract.argumentMap.includes('callback.shouldDisplay')?['shouldDisplay']:[])]
   }[p.profile];
+  const fields=candidates.filter(key=>key==='flyout'?contract.argumentMap.includes('component.flyout'):key==='icon'?contract.argumentMap.some(token=>['registration.icon','registration.iconOptions'].includes(token)):key==='shouldDisplay'?contract.argumentMap.includes('callback.shouldDisplay'):contract.argumentMap.includes(`registration.${key}`));
   for(const key of Object.keys(p.registration??{}))if(!fields.includes(key))throw new Error(`Registration parameter ${key} is not supported by profile ${p.profile} in ${contract.tag}`);
   const defaults={group:'argoproj.io',kind:'Application',tabTitle:p.name,title:p.name,id:p.name,path:`/${p.name}`,icon:'fa-puzzle-piece',shouldDisplay:true,isMiddle:false,flyout:p.profile==='top-bar-action'};
   const registration=Object.fromEntries(fields.map(key=>[key,p.registration?.[key]??defaults[key]]));
-  if(p.profile==='top-bar-action'&&p.registration?.flyout===false)throw new Error(`Profile top-bar-action in ${contract.tag} requires a flyout component`);
+  if(p.profile==='top-bar-action'&&contract.argumentMap.includes('component.flyout')&&!/flyout[?=]/.test(contract.signature)&&p.registration?.flyout===false)throw new Error(`Profile top-bar-action in ${contract.tag} requires a flyout component`);
   return {...p,schemaVersion,templateVersion,registration,hostContract:contract};
 }
 export function validateProject(project){
   if(!project||typeof project!=='object'||Array.isArray(project))throw new Error('Project configuration must be an object');
   const normalized=normalize(Object.fromEntries(Object.keys(schema.properties).filter(k=>Object.hasOwn(project,k)).map(k=>[k,project[k]])));
   if(project.schemaVersion!==schemaVersion||project.templateVersion!==templateVersion)throw new Error('Unsupported project schema/template version');
-  if(JSON.stringify(project.hostContract)!==JSON.stringify(normalized.hostContract))throw new Error('Host contract provenance does not match the audited release');
+  if(!isDeepStrictEqual(project.hostContract,normalized.hostContract))throw new Error('Host contract provenance does not match the audited release');
+  if(!isDeepStrictEqual(project.registration,normalized.registration))throw new Error('Project registration must include normalized values; defaults cannot replace missing manifest fields');
   return normalized;
 }

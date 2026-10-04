@@ -4,6 +4,7 @@ export interface ResourceState {readonly group?:string;readonly kind?:string;rea
 export interface ResourceNode {readonly group?:string;readonly kind?:string;readonly name?:string;readonly namespace?:string;readonly uid?:string}
 export interface ApplicationTree {readonly nodes?:readonly ResourceNode[]}
 export interface ExtensionProps {readonly application?:Application;readonly resource?:ResourceState;readonly tree?:ApplicationTree;readonly openFlyout?:()=>void;readonly [key:string]:unknown}
+export interface FlyoutProps {readonly application?:Application;readonly tree?:ApplicationTree;readonly [key:string]:unknown}
 export interface ProjectRegistration {group?:string;kind?:string;tabTitle?:string;title?:string;id?:string;path?:string;icon?:string;shouldDisplay?:boolean;isMiddle?:boolean;flyout?:boolean}
 export interface ExtensionsAPI {
   registerResourceExtension(component:import('react').ComponentType<ExtensionProps>,group:string,kind:string,tabTitle:string,opts?:{icon?:string}):void;

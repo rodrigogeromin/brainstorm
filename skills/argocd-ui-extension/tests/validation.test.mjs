@@ -8,6 +8,7 @@ import {generate} from '../scripts/generate.mjs';
 const parameters={name:'validation-project',description:'Validation regression',argoCdVersion:'3.5.3',profile:'resource-tab'};
 async function project() {
  const parent=await mkdtemp(path.join(tmpdir(),'argocd-validation-'));const dest=path.join(parent,'project');await generate(parameters,dest);
+ for(const [name,version] of [['react','19.2.6'],['react-dom','19.2.6'],['@types/react','19.2.14'],['@types/react-dom','19.2.3']]){await mkdir(path.join(dest,'node_modules',name),{recursive:true});await writeFile(path.join(dest,'node_modules',name,'package.json'),JSON.stringify({version}));}
  const validation=await import(pathToFileURL(path.join(dest,'scripts/validate.mjs')));
  const evidence=await import(pathToFileURL(path.join(dest,'scripts/evidence.mjs')));
  return {dest,...validation,...evidence};

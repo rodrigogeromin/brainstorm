@@ -171,3 +171,9 @@ Fontes web consultadas em 2026-10-03. Links de branches e documentação stable 
 - [Rollout: Webpack](https://raw.githubusercontent.com/argoproj-labs/rollout-extension/master/ui/webpack.config.js).
 - [Installer: resources e instalação](https://github.com/argoproj-labs/argocd-extension-installer).
 - [React: ferramentas e restrições](https://react.dev/learn/build-a-react-app-from-scratch).
+
+## Atualização de capacidade — 2026-10-04
+
+O template 2.2 mantém schema v2 e acrescenta runtime/flyoutProps opcionais. Presets exatos 3.0.0, 3.5.1 e 3.5.3 derivam o lock e runtime reais; o preview usa render para React16 e createRoot para React18/19. Produção continua consumindo React externo. O coletor audit-host registra fontes/hashes sem declarar contrato revisado; o contrato depende da leitura da tag.
+
+Existe agora migração explícita de manifesto em saída nova: aliases v1 são convertidos, campos personalizados/proveniência preservados e evidência/integração invalidadas. O comando não substitui código personalizado. A adaptação dos arquivos portáveis e UI é feita por diff revisável. Esta atualização amplia a capacidade atual; os ADRs e decisões históricas permanecem como registro de seu momento.

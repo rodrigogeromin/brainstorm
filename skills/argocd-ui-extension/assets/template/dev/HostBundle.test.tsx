@@ -1,15 +1,17 @@
 import '@testing-library/jest-dom';
 import React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as ReactJSXRuntime from 'react/jsx-runtime';
-import {render, screen, cleanup} from '@testing-library/react';
+import {jsxRuntime} from './host-runtime';
+import {render, screen, cleanup,fireEvent} from '@testing-library/react';
 import {readFileSync} from 'node:fs';
 import type {ExtensionProps} from '../src/argocd/types';
 import {validContext} from './fixtures/context';
 import project from '../extension-project.json';
+import type {HostContractInput} from '../references/parameters';
+const contract=project.hostContract as HostContractInput;
 import type {ExtensionsAPI,ProjectRegistration} from '../src/argocd/types';
 const registration=project.registration as unknown as ProjectRegistration;
-function expectedArguments(){return (project.hostContract.argumentMap as string[]).map(token=>{
+function expectedArguments(){return (contract.argumentMap as string[]).map(token=>{
   if(token==='component')return expect.any(Function);
   if(token==='component.flyout')return registration.flyout?expect.any(Function):undefined;
   if(token==='callback.shouldDisplay')return expect.any(Function);
@@ -24,10 +26,10 @@ test('production bundle registers and renders against simulated host globals', (
   const globals = window as unknown as Record<string, unknown>;
   globals.React = React;
   globals.ReactDOM = ReactDOM;
-  globals.ReactJSXRuntime = ReactJSXRuntime;
-  const register = jest.fn((c: React.ComponentType<ExtensionProps>) => {component = c;});
+  if(contract.globals.includes('ReactJSXRuntime'))globals.ReactJSXRuntime = jsxRuntime;
+  const register = jest.fn((c: React.ComponentType<ExtensionProps>,...args:unknown[]) => {void args;component = c;});
   window.extensionsAPI = Object.fromEntries(['registerResourceExtension','registerSystemLevelExtension','registerStatusPanelExtension','registerTopBarActionMenuExt','registerAppViewExtension'].map(method=>[method,register])) as unknown as ExtensionsAPI;
-  const frozen = JSON.parse(JSON.stringify(validContext)) as ExtensionProps;
+  const frozen = Object.fromEntries(contract.props.filter(key=>key!=='openFlyout').map(key=>[key,validContext[key as keyof typeof validContext]])) as ExtensionProps;
   function freeze(value: unknown) {
     if (value && typeof value === 'object') {
       Object.freeze(value);
@@ -40,13 +42,24 @@ test('production bundle registers and renders against simulated host globals', (
   expect(register).toHaveBeenCalledWith(...expectedArguments());
   if (!component) throw new Error('No host registration');
   const Component = component;
-  render(<Component {...frozen} />);
-  expect(screen.getByText('Healthy')).toBeInTheDocument();
+  const openFlyout=jest.fn();
+  render(<Component {...frozen} {...(contract.props.includes('openFlyout')?{openFlyout}:{})} />);
+  if(registration.flyout&&contract.props.includes('openFlyout')){fireEvent.click(screen.getByRole('button',{name:'Open details'}));expect(openFlyout).toHaveBeenCalledTimes(1);}
+  const callbackIndex=contract.argumentMap.indexOf('callback.shouldDisplay');
+  if(callbackIndex>=0){const callback=register.mock.calls[0][callbackIndex] as unknown as (application?:typeof validContext.application)=>boolean;expect(callback(validContext.application)).toBe(registration.shouldDisplay??true);expect(callback(undefined)).toBe(registration.shouldDisplay??true);}
+  if(contract.props.includes('application'))expect(screen.getByText('Healthy')).toBeInTheDocument();
+  else expect(screen.getByRole('status')).toHaveTextContent('No context');
   cleanup();
   render(<Component />);
   expect(screen.getByRole('status')).toHaveTextContent('No context');
   expect(globals.React).toBe(React);
   expect(globals.ReactDOM).toBe(ReactDOM);
-  if(project.hostContract.globals.includes('ReactJSXRuntime'))expect(globals.ReactJSXRuntime).toBe(ReactJSXRuntime);
+  if(contract.globals.includes('ReactJSXRuntime'))expect(globals.ReactJSXRuntime).toBe(jsxRuntime);
+  if(registration.flyout){
+    cleanup();
+    const Flyout=register.mock.calls[0][contract.argumentMap.indexOf('component.flyout')] as unknown as React.ComponentType<ExtensionProps>;
+    const flyoutProps=Object.fromEntries((contract.flyoutProps??[]).map(key=>[key,validContext[key as keyof typeof validContext]]));
+    render(<Flyout {...flyoutProps}/>);expect(screen.getByRole('heading',{name:'Extension details'})).toBeInTheDocument();
+  }
   delete window.extensionsAPI;
 });

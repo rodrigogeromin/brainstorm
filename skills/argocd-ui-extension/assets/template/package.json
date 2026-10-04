@@ -16,7 +16,8 @@
     "package": "node scripts/package.mjs",
     "validate": "node scripts/validate.mjs",
     "evidence:check": "node scripts/evidence.mjs",
-    "harness": "jest --runInBand --runTestsByPath dev/HostBundle.test.tsx"
+    "harness": "jest --runInBand --runTestsByPath dev/HostBundle.test.tsx",
+    "runtime:setup": "node scripts/setup-runtime.mjs"
   },
   "dependencies": {
     "react": "19.2.6",

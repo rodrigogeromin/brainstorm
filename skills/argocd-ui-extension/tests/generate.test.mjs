@@ -9,7 +9,7 @@ import {generate, entries, templateRoot} from '../scripts/generate.mjs';
 const base = {name:'context-inspector',description:'Read-only context',argoCdVersion:'3.5.3',profile:'resource-tab'};
 test('unsupported parameters write no files', async () => {
  const parent=await mkdtemp(path.join(tmpdir(),'argocd-contract-'));
- for(const override of [{name:'Bad_Name'},{name:'../unsafe'},{description:''},{argoCdVersion:'3.5.1'},{argoCdVersion:'3.6.0'},{argoCdVersion:'3.5.3-beta.1'},{profile:'global-page'},{registration:null},{registration:{path:'/bad'}},{registration:{flyout:false}},{dataSource:'secret'},{backend:{kind:'secret'}},{extra:'unknown'}]) {
+ for(const override of [{name:'Bad_Name'},{name:'../unsafe'},{description:''},{argoCdVersion:'3.6.0'},{argoCdVersion:'3.5.3-beta.1'},{profile:'global-page'},{registration:null},{registration:{path:'/bad'}},{registration:{flyout:false}},{dataSource:'secret'},{backend:{kind:'secret'}},{extra:'unknown'}]) {
   await assert.rejects(generate({...base,...override},path.join(parent,'new'))); assert.deepEqual(await readdir(parent),[]);
  }
  assert.equal(normalize(base).registration.group,'argoproj.io');
@@ -32,7 +32,9 @@ test('deterministic and portable generation with independent names',async()=>{
 test('template has lock and no dependencies/output',async()=>{const files=await entries(templateRoot);assert(files.includes('package-lock.json'));assert(!files.some(f=>f.startsWith('node_modules/')||f.startsWith('dist/')));});
 test('evidence refuses bundle/package/source/template changes and failed checks',async()=>{
  const parent=await mkdtemp(path.join(tmpdir(),'argocd-evidence-'));const dest=path.join(parent,'project');await generate(base,dest);
- const {mkdir}=await import('node:fs/promises');await mkdir(path.join(dest,'dist/resources'),{recursive:true});
+ const {mkdir}=await import('node:fs/promises');
+ for(const [name,version] of [['react','19.2.6'],['react-dom','19.2.6'],['@types/react','19.2.14'],['@types/react-dom','19.2.3']]){await mkdir(path.join(dest,'node_modules',name),{recursive:true});await writeFile(path.join(dest,'node_modules',name,'package.json'),JSON.stringify({version}));}
+ await mkdir(path.join(dest,'dist/resources'),{recursive:true});
  await writeFile(path.join(dest,'dist/resources/extension-context-inspector.js'),'bundle');await writeFile(path.join(dest,'dist/context-inspector.tar.gz'),'package');
  const {pathToFileURL}=await import('node:url');const {identity,checkEvidence}=await import(pathToFileURL(path.join(dest,'scripts/evidence.mjs')));
  const old=process.cwd();process.chdir(dest);

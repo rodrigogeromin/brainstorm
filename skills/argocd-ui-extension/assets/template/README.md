@@ -3,6 +3,7 @@
 Generated Argo CD UI extension. Exact target release, profile, official source tag, API signature, props and host React globals are recorded in `extension-project.json`.
 
 ```sh
+npm run runtime:setup
 npm ci
 npm run dev
 npm run validate
@@ -16,3 +17,5 @@ The generator supports audited resource tabs (including Application tabs), syste
 Production output is one `dist/resources/extension-__EXTENSION_NAME__.js` with scoped CSS. Host React globals and JSX mode derive from the recorded contract. The package contains only the extension resource. Choose an installer and environment-specific configuration before any cluster action; none is generated or applied automatically.
 
 Template changes do not silently update generated projects. Record domain adaptations in `origin.adaptations`; browser configuration is public and must never contain secrets.
+
+Runtime setup aligns the audited React/DOM/types and JSX mode before dependency installation. Customize src/features and src/app; visibility lives in src/argocd/visibility.ts. Open details uses host openFlyout; preview allows opening and closing its simulated flyout. Local checks do not establish integration.

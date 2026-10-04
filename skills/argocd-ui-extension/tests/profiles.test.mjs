@@ -9,7 +9,7 @@ import {generate} from '../scripts/generate.mjs';
 const profiles=['resource-tab','system-level','status-panel','top-bar-action','app-view'];
 const synthetic={sourceKind:'official',tag:'v4.2.1',sources:['extensions-service.ts','index.tsx','package.json','pnpm-lock.yaml'].map(file=>`https://github.com/argoproj/argo-cd/blob/v4.2.1/ui/${file}`),profile:'resource-tab',method:'registerResourceExtension',signature:'registerResourceExtension(component, group, kind, tabTitle, opts?)',props:['application','resource','tree'],globals:['React','ReactDOM','ReactJSXRuntime'],jsxMode:'automatic',argumentMap:['component','registration.group','registration.kind','registration.tabTitle','registration.iconOptions']};
 test('representative release contracts expose exact signatures, props, and globals',()=>{
-  for(const version of ['3.0.0','3.5.3']) for(const profile of profiles){
+  for(const version of ['3.0.0','3.5.1','3.5.3']) for(const profile of profiles){
     const project=normalize({name:'profile-test',description:'profile contract',argoCdVersion:version,profile});
     assert.equal(project.hostContract.tag,`v${version}`);
     assert(project.hostContract.sources.every(url=>url.includes(`/blob/v${version}/`)));
@@ -63,7 +63,7 @@ test('accepts fork evidence only when explicitly labeled custom and retains that
 });
 test('all five UI profiles generate provenance for both audited contract versions',async()=>{
   const parent=await mkdtemp(path.join(tmpdir(),'argocd-five-profiles-'));
-  for(const version of ['3.0.0','3.5.3']) for(const profile of profiles){
+  for(const version of ['3.0.0','3.5.1','3.5.3']) for(const profile of profiles){
     const destination=path.join(parent,`${version}-${profile}`);
     await generate({name:'profile-test',description:'profile contract',argoCdVersion:version,profile},destination);
     const manifest=JSON.parse(await readFile(path.join(destination,'extension-project.json'),'utf8'));

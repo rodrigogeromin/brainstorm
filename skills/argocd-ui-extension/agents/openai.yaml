@@ -1,4 +1,4 @@
 interface:
   display_name: "Argo CD UI Extension"
-  short_description: "Generate Argo CD UI extensions from audited release contracts"
-  default_prompt: "Use $argocd-ui-extension to create a UI extension for an exact Argo CD release and selected profile."
+  short_description: "Build and adapt Argo CD UI extensions from audited host contracts"
+  default_prompt: "Use $argocd-ui-extension to build or adapt the requested UI extension for an exact Argo CD release, including its UI behavior and validation."

@@ -33,7 +33,8 @@ export async function generate(input, destination) {
   // Prepare every output before creating the destination. JSON carries arbitrary user strings safely.
   const outputs = await Promise.all(sourceFiles.map(async file => [file, (await readFile(path.join(templateRoot, file), 'utf8')).replaceAll('__EXTENSION_NAME__', project.name)]));
   // Portable projects receive the exact executable contract and authoritative schema.
-  for (const [source, target] of [['contract.mjs', 'scripts/contract.mjs'], ['../references/parameters.schema.json', 'references/parameters.schema.json']]) outputs.push([target, await readFile(new URL(source, import.meta.url), 'utf8')]);
+  for (const [source, target] of [['contract.mjs', 'scripts/contract.mjs'], ['../references/parameters.schema.json', 'references/parameters.schema.json'], ['../references/parameters.d.ts', 'references/parameters.d.ts']]) outputs.push([target, await readFile(new URL(source, import.meta.url), 'utf8')]);
+  outputs.push(['references/host-contract.json', JSON.stringify(project.hostContract,null,2)+'\n']);
   await mkdir(path.dirname(dest), {recursive: true});
   await mkdir(dest); // exclusive creation closes collision race; never recursive here
   for (const [file, contents] of outputs) {

@@ -1,12 +1,15 @@
+import React from 'react';
 import '@testing-library/jest-dom';
-import {render, screen} from '@testing-library/react';
-import {Extension} from '../src/app/Extension';
+import {render, screen,fireEvent} from '@testing-library/react';
+import {Extension,ExtensionFlyout} from '../src/app/Extension';
 import {register} from '../src/argocd/register';
 import {validContext, absentContext} from './fixtures/context';
 import project from '../extension-project.json';
+import type {HostContractInput} from '../references/parameters';
+const contract=project.hostContract as HostContractInput;
 import type {ExtensionsAPI,ProjectRegistration} from '../src/argocd/types';
 const registration=project.registration as unknown as ProjectRegistration;
-function expectedArguments(){return (project.hostContract.argumentMap as string[]).map(token=>{
+function expectedArguments(){return (contract.argumentMap as string[]).map(token=>{
   if(token==='component')return Extension;
   if(token==='component.flyout')return registration.flyout?expect.any(Function):undefined;
   if(token==='callback.shouldDisplay')return expect.any(Function);
@@ -33,8 +36,18 @@ test('registers the same component using the host contract', () => {
   register(Extension);
   expect(fn).toHaveBeenCalledTimes(1);
   expect(fn).toHaveBeenCalledWith(...expectedArguments());
-  const callback=fn.mock.calls[0].slice(1).find((arg:unknown)=>typeof arg==='function') as (()=>boolean)|undefined;
-  if(project.hostContract.argumentMap.includes('callback.shouldDisplay'))expect(callback?.()).toBe(true);
+  const callback=fn.mock.calls[0][contract.argumentMap.indexOf('callback.shouldDisplay')] as ((application?:typeof validContext.application)=>boolean)|undefined;
+  if(contract.argumentMap.includes('callback.shouldDisplay'))expect(callback?.(validContext.application)).toBe(registration.shouldDisplay??true);
   delete window.extensionsAPI;
   expect(() => register(Extension)).toThrow('extensionsAPI');
+});
+
+test('flyout action follows enabled profile and host context',()=>{
+ const open=jest.fn();render(<Extension {...validContext} openFlyout={open}/>);
+ const button=screen.queryByRole('button',{name:'Open details'});
+ if(registration.flyout && ['top-bar-action','status-panel'].includes(project.profile)){expect(button).toBeInTheDocument();fireEvent.click(button!);expect(open).toHaveBeenCalledTimes(1);}else expect(button).not.toBeInTheDocument();
+});
+test('flyout content receives separate context',()=>{
+ render(<ExtensionFlyout application={validContext.application} tree={validContext.tree}/>);
+ expect(screen.getByRole('heading',{name:'Extension details'})).toBeInTheDocument();expect(screen.getByText('Healthy')).toBeInTheDocument();
 });
