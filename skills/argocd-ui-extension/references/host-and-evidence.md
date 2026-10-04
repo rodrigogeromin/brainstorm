@@ -1,14 +1,18 @@
-# Exact host contract and evidence
+# Host contracts and evidence
 
-Target: official tag v3.5.3. Upstream service declares `registerResourceExtension(component, group, kind, tabTitle, opts?)`, and resource props `resource: State`, `tree: ApplicationTree`, `application: Application`. Our adapter uses a readonly optional subset so absent contexts are safe. Host sources:
+The generator schema v2 accepts an exact Argo CD SemVer and five UI profiles: resource-tab, system-level, status-panel, top-bar action, and app-view. Bundled contract presets cover v3.0.0 and v3.5.3. Other exact official releases can provide `hostContract` in the input parameters after auditing that tag's `ui/src/app/shared/services/extensions-service.ts`, `ui/src/app/index.tsx`, `ui/package.json` and `ui/pnpm-lock.yaml`. The validator enforces exact tag/version agreement and official GitHub source URLs. Forks use `sourceKind: "custom"`, identify a source tag/commit and remain labeled custom; they must provide the equivalent source files as HTTPS URLs. Both paths validate selected profile/method, required registration argument mapping and React globals/JSX consistency. Never infer from docs alone or a nearby tag. A supplied audit record is not host integration proof.
 
-- https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/src/app/shared/services/extensions-service.ts
-- https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/src/app/index.tsx
-- https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/src/app/shared/models.ts
-- https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/pnpm-lock.yaml
+The v3.0.0 and v3.5.3 source contracts both expose resource, system-level, status-panel, top-bar action and app-view registration. App-view's `shouldDisplay` argument is absent in v3.0.0 and present in v3.5.3. The system-level source signature is `(component, title, path, icon)`, even where documentation examples disagree. Application tabs are resource tabs matched to `argoproj.io/Application`. Status and top-bar registrations support flyout components; use one only where the exact signature accepts it.
 
-No upstream code is copied wholesale. The template externalizes react→React, react-dom→ReactDOM and react/jsx-runtime→ReactJSXRuntime. react-dom/client is preview-only; jsx-dev-runtime is unsupported in installed output. Production inspection uses Webpack's module list, not just minified text heuristics.
+Release sources:
 
-Local `validation-report.json` binds exact project source revision, template digest, bundle and tar hashes to tool versions and results. `evidence:check` rejects any mismatched identity. Integrated evidence must additionally identify installed hashes, actual 3.5.3 host, registration and rendering, runtime/global ownership, console errors, narrow/wide dimensions and scroll accessibility, dark theme when available. Keep it separate from the automatically generated local report. A source/build/package change requires revalidation. No integrated version can be certified by the local validator.
+- v3.0.0: [extensions-service.ts](https://github.com/argoproj/argo-cd/blob/v3.0.0/ui/src/app/shared/services/extensions-service.ts), [UI entrypoint](https://github.com/argoproj/argo-cd/blob/v3.0.0/ui/src/app/index.tsx), [package.json](https://github.com/argoproj/argo-cd/blob/v3.0.0/ui/package.json), [pnpm-lock.yaml](https://github.com/argoproj/argo-cd/blob/v3.0.0/ui/pnpm-lock.yaml).
+- v3.5.3: [extensions-service.ts](https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/src/app/shared/services/extensions-service.ts), [UI entrypoint](https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/src/app/index.tsx), [package.json](https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/package.json), [pnpm-lock.yaml](https://github.com/argoproj/argo-cd/blob/v3.5.3/ui/pnpm-lock.yaml).
 
-Installation is conditional on the user's chosen method. The archive provides resources/extension-name.js; installer must expose it at /tmp/extensions on argocd-server, with UI extensions enabled. Choose installer image/digest and manifests only after the environment is known and deployment requested. Never use simulated authentication or preview as integration proof.
+React globals are release-specific: the contract presets list React and ReactDOM for v3.0.0 and additionally ReactJSXRuntime for v3.5.3. Production Webpack externals and JSX mode derive from the selected contract object, including a supplied one. Production inspection verifies the required external and rejects bundled React/ReactDOM or unsupported client/development runtime modules.
+
+The optional Argo CD reverse proxy is a backend capability, selected through `backend.kind: "proxy"`, separate from React UI profiles. It requires the target release's own proxy evidence and explicit service configuration; the scaffold does not create or deploy a backend.
+
+Local validation, preview, and the simulated host harness are not Argo CD integration. The report binds source revision, template version, target version, profile, contract tag/signature/props/globals, bundle hash and package hash. Integration is `not-run` until the exact version and those exact artifacts are installed and rendered in a real host. Only then can that version enter the integrated matrix.
+
+Installation is conditional on the user's chosen method. The archive provides `resources/extension-name.js`; the installer must expose it under `/tmp/extensions` on argocd-server with UI extensions enabled. Choose installer image/digest and manifests only after the environment is known and deployment is requested.

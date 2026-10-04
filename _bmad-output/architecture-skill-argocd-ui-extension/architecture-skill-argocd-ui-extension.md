@@ -56,15 +56,15 @@ A UI pode importar apenas tipos do adaptador; acesso em runtime ao host pertence
 - **Status:** Proposto [ASSUMPTION].
 - **Binds:** FR-2 a FR-5; Template, gerador e Skill.
 - **Prevents:** A Skill recria infraestrutura ou gerador e validação interpretam parâmetros diferentes.
-- **Rule:** Template e gerador determinístico são versionados juntos. A Skill coleta parâmetros e invoca o gerador; não reescreve build/empacotamento por improvisação. O contrato executável de geração, com esquema, defaults normalizados e tipos, pertence ao gerador e é compartilhado pela validação e pelos consumidores. Ele deve existir antes de implementar Skill e gerador independentemente; mudanças versionam schemaVersion. Fixtures importam os tipos únicos do adaptador do host. Cada projeto contém extension-project.json com schemaVersion, templateVersion, name, description, argoCdVersion, profile e registration; para resource-tab, registration contém group, kind e tabTitle. Destino é argumento da geração, não caminho absoluto persistido. Dados opcionais usam configuração explícita sem segredos. Destino existente interrompe a geração antes de escrever; autorização de alteração exige plano explícito. Atualizações nunca são automáticas.
+- **Rule:** Template e gerador determinístico são versionados juntos. Schema v2 aceita SemVer exata e profiles listados; presets cobrem 3.0.0 e 3.5.3, enquanto outras releases aceitam hostContract auditado como parâmetro. Tag/versão, URLs oficiais/tagueadas, profile, método, props, globals/JSX e mapeamento de argumentos são validados antes de criar destino. Cada projeto contém extension-project.json com schemaVersion, templateVersion, parâmetros, registration, hostContract e origem. Proxy backend é opcional e separado dos profiles React. Destino existente interrompe a geração antes de escrever; projetos v1 não migram nem atualizam automaticamente.
 - **Registro:** [ADR-0003](adrs/0003-template-e-geracao.md).
 
-### AD-4 — Perfil inicial de aba de Application
+### AD-4 — Profiles de UI dependentes do contrato exato
 
-- **Status:** Proposto [ASSUMPTION].
-- **Binds:** A3, FR-3, FR-7; primeiro perfil.
+- **Status:** Adotado do plano de generalização [ADOPTED].
+- **Binds:** A3, FR-3, FR-7; profiles disponíveis por release.
 - **Prevents:** Preview usa um contrato enquanto registro instalado usa outro ponto de extensão.
-- **Rule:** O primeiro perfil é resource-tab, registrado para group argoproj.io e kind Application. O exemplo neutro mostra contexto recebido, sem funcionalidades de negócio. O adaptador aceita os props documentados application, resource e tree; fixtures seguem os mesmos tipos e tratam ausências. Perfis adicionais exigem adaptador, fixtures e evidência próprios. O pedido pode parametrizar group/kind quando o perfil for validado para outros recursos.
+- **Rule:** Profiles suportados pelo contrato são resource-tab (incluindo Application por argoproj.io/Application), system-level, status-panel, top-bar-action e app-view. Cada adapter e harness deriva método e props do contrato da tag exata. Métodos ausentes não são inventados. Flyouts e callbacks de filtro só são gerados quando a assinatura permite. Resource actions e custom health checks não são profiles React. O exemplo neutro mostra contexto recebido.
 - **Registro:** [ADR-0004](adrs/0004-perfil-inicial.md).
 
 ### AD-5 — Bundle único e pacote resources
@@ -88,7 +88,7 @@ A UI pode importar apenas tipos do adaptador; acesso em runtime ao host pertence
 - **Status:** Adotado do PRD [ADOPTED].
 - **Binds:** FR-10, FR-11, NFR-1, NFR-2; validação.
 - **Prevents:** Build passa e é apresentado como integração ou suporte a versões futuras.
-- **Rule:** Fixar Argo CD exato >3.5.1 antes das dependências. Template registra versões e lockfile. Relatório identifica projeto, revisão do código gerado, versão e revisão do template, hash SHA-256 do bundle e pacote efetivamente instalados, alvo, ambiente e cada comando/check com passed, failed ou not-run. Preview e typecheck/build/package não provam integração. Só incluir versão na matriz testada após registro/renderização no host, inspeção do runtime, acesso a conteúdo em painel estreito e amplo com dimensões registradas e tema escuro quando disponível. Falha ou check obrigatório não executado impede conclusão da release inicial. Evidência vale somente para os hashes instalados e a versão exata testada; rebuild não herda validação sem confirmar identidade do artefato. Mudança de conteúdo exige nova validação integrada.
+- **Rule:** Cada geração usa versão SemVer exata e contrato oficial daquela tag. Relatório identifica projeto, perfil, tag/fontes, assinatura, props, globals, revisão do template, hash SHA-256 do bundle e pacote instalados, ambiente e cada check com passed, failed ou not-run. Preview, harness e build não provam integração. Só incluir versão na matriz integrada após registro/renderização no host exato, inspeção do runtime, acesso em painel estreito e amplo e tema escuro quando disponível. Rebuild não herda validação sem confirmar identidade do artefato. Mudança de conteúdo exige nova validação integrada.
 - **Registro:** [ADR-0007](adrs/0007-compatibilidade-e-evidencias.md).
 
 ### AD-8 — Toolchain inicial React, TypeScript, Webpack e npm

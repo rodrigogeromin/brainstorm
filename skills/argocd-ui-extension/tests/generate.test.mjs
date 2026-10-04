@@ -9,7 +9,7 @@ import {generate, entries, templateRoot} from '../scripts/generate.mjs';
 const base = {name:'context-inspector',description:'Read-only context',argoCdVersion:'3.5.3',profile:'resource-tab'};
 test('unsupported parameters write no files', async () => {
  const parent=await mkdtemp(path.join(tmpdir(),'argocd-contract-'));
- for(const override of [{name:'Bad_Name'},{name:'../unsafe'},{description:''},{argoCdVersion:'3.5.1'},{argoCdVersion:'3.6.0'},{profile:'global-page'},{registration:{kind:'Deployment'}},{registration:null},{dataSource:'secret'},{extra:'unknown'}]) {
+ for(const override of [{name:'Bad_Name'},{name:'../unsafe'},{description:''},{argoCdVersion:'3.5.1'},{argoCdVersion:'3.6.0'},{argoCdVersion:'3.5.3-beta.1'},{profile:'global-page'},{registration:null},{registration:{path:'/bad'}},{registration:{flyout:false}},{dataSource:'secret'},{backend:{kind:'secret'}},{extra:'unknown'}]) {
   await assert.rejects(generate({...base,...override},path.join(parent,'new'))); assert.deepEqual(await readdir(parent),[]);
  }
  assert.equal(normalize(base).registration.group,'argoproj.io');

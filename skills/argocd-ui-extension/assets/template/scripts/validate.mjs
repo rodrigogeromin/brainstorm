@@ -15,7 +15,8 @@ export async function runValidation({runCheck = command => spawnSync('npm', ['ru
     if (run.error || run.status !== 0) break;
   }
   const passed = configuration.status === 'passed' && checks.every(c=>c.status==='passed');
-  const report = {schemaVersion:1, generatedAt:new Date().toISOString(), environment:{node:process.version,npm:npmVersion,platform:process.platform}, identity:await identity({includeArtifacts:passed,validateConfiguration:false}), configuration, artifacts:{status:passed?'validated':'not-validated',reason:passed?null:'Configuration or required check failed; artifact hashes are unavailable for this validation'}, checks, harness:{status:checks.find(c=>c.command==='npm run harness').status,kind:'simulated host globals; not Argo CD integration'}, integration:{status:'not-run',reason:'No exact 3.5.3 host was installed/tested by local validation'}, integratedVersions:[], releaseComplete:false};
+  const identityRecord=await identity({includeArtifacts:passed,validateConfiguration:false});
+  const report = {schemaVersion:2, generatedAt:new Date().toISOString(), environment:{node:process.version,npm:npmVersion,platform:process.platform}, identity:identityRecord, configuration, artifacts:{status:passed?'validated':'not-validated',reason:passed?null:'Configuration or required check failed; artifact hashes are unavailable for this validation'}, checks, harness:{status:checks.find(c=>c.command==='npm run harness').status,kind:'simulated host globals; not Argo CD integration'}, integration:{status:'not-run',reason:`No ${identityRecord.target} host was installed/tested by local validation`}, integratedVersions:[], releaseComplete:false};
   await writeFile('validation-report.json',JSON.stringify(report,null,2)+'\n');
   return report;
 }

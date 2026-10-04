@@ -23,7 +23,7 @@ test('portable validation/evidence reject manifest edits to unsupported target o
    assert.equal(calls,0);assert.equal(report.configuration.status,'failed');assert(report.checks.every(c=>c.status==='not-run'));
    assert.equal(report.identity.project,'validation-project');assert.equal(report.identity.target,override.argoCdVersion??'3.5.3');
    const forged={...report,identity:await identity({validateConfiguration:false}),checks:report.checks.map(c=>({...c,status:'passed',exitCode:0}))};
-   await assert.rejects(checkEvidence(forged),/must equal/);
+  await assert.rejects(checkEvidence(forged),/No preset host contract|one of|hostContract\.tag must be/);
   }
  } finally {process.chdir(old);}
 });

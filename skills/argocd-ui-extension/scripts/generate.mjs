@@ -40,7 +40,7 @@ export async function generate(input, destination) {
     await mkdir(path.dirname(path.join(dest, file)), {recursive: true});
     await writeFile(path.join(dest, file), contents, {flag: 'wx'});
   }
-  await writeFile(path.join(dest, 'extension-project.json'), JSON.stringify({...project, origin: {templateSha256: digest, contractRevision: digest, adaptations: []}, compatibility: {locallySupported: ['3.5.3'], integrated: []}}, null, 2) + '\n', {flag: 'wx'});
+  await writeFile(path.join(dest, 'extension-project.json'), JSON.stringify({...project, origin: {templateSha256: digest, adaptations: []}, compatibility: {localBuild: 'not-run', harness: 'not-run', integrated: []}}, null, 2) + '\n', {flag: 'wx'});
   return {destination: dest, templateSha256: digest};
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

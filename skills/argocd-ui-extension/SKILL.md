@@ -1,28 +1,22 @@
 ---
 name: argocd-ui-extension
-description: Create new React and TypeScript Argo CD UI extension projects from a versioned local template, with preview, build, package and validation evidence. Use for resource-tab extensions targeting exact Argo CD 3.5.3.
+description: Create React and TypeScript Argo CD UI extensions from exact release-tag contracts, with local preview, build, packaging and evidence.
 ---
 
-Create a new independent project with the bundled generator; do not recreate build or packaging infrastructure. This base supports only exact **3.5.3**, resource-tab, `argoproj.io/Application`, host-props. Host integration is pending and the tested integrated matrix is empty.
+Create a new independent project with the bundled deterministic generator. It includes audited source-contract presets for Argo CD 3.0.0 and 3.5.3. Any other exact release can be used when its audited contract is supplied in the parameters. The five profiles are `resource-tab` (including Application with group `argoproj.io`, kind `Application`), `system-level`, `status-panel`, `top-bar-action`, and `app-view`.
 
-Collect name, description, destination, exact Argo CD version and extension profile from the request/context. Explain the Application defaults and tab title; reuse given values. Missing contract/compatibility inputs require clarification; do not silently pick another version/profile. `scripts/contract.mjs` owns normalization and validation; [parameter schema](references/parameters.schema.json) and [types](references/parameters.d.ts) describe input. No secrets in configuration.
+Before generation, identify the exact Argo CD version and profile. For a release without a preset, inspect the exact official tag's `extensions-service.ts`, UI bootstrap, package manifest and lockfile, then include a `hostContract` object in the parameters with `sourceKind: "official"`, the tag, those four official GitHub source URLs, selected profile, method, source signature, component props, React globals, JSX mode and registration `argumentMap`. For a fork, use `sourceKind: "custom"`, identify its source tag/commit, and provide the equivalent source URLs; its manifest remains explicitly custom. The generator checks official tag/version equality (or custom source identity), required evidence paths, selected profile/method, global/JSX consistency and allowed argument mapping. The evidence object records the source audit; it does not establish host integration. If a tag is missing, a method is absent or a signature/global is unclear, stop before generation. Never infer from a nearby release. Resource actions and custom health checks are not React UI profiles.
 
-Write a temporary JSON parameter file, then run the absolute resolved skill-local command:
+The schema and normalizer validate exact SemVer and profile availability. Configure only fields supported by the selected profile in `registration`; do not silently choose a different profile. `backend.kind: "proxy"` records the optional backend proxy separately from UI registration and does not create a backend service. Do not put credentials in the project.
+
+Write a temporary JSON parameter file, then run:
 
 ```sh
 node <skill-directory>/scripts/generate.mjs <parameters.json> <new-destination>
 ```
 
-Example parameters:
+The generated `extension-project.json` records exact version, profile, official tag and URLs, selected method signature, props, discovered React globals, JSX mode, registration mapping and template provenance. Existing paths, including dangling symlinks, are refused. Inspect the README and manifest. Customize domain UI under `src/features` and `src/app`; keep host access in the adapter and pass context into UI through props.
 
-```json
-{"name":"context-inspector","description":"Read-only Application context","argoCdVersion":"3.5.3","profile":"resource-tab","registration":{"tabTitle":"Context"}}
-```
+In the generated directory run `npm ci`, `npm run validate`, and `npm run evidence:check`. Review all report rows. The preview and production harness simulate host globals and registration; they do not prove host integration. Integration remains `not-run` until the generated bundle is installed and tested on the exact target release. Do not add a version to the integrated matrix based on local gates.
 
-Existing paths, including dangling symlinks, are refused before generation writes. Do not authorize overwrites implicitly. Inspect the generated README and extension-project.json. Customize requested domain UI under src/features and src/app, preserving readonly host props, scoped styles and the two entrypoints. Record adaptations in origin.adaptations.
-
-In the generated directory run `npm ci`, `npm run validate`, `npm run evidence:check`. A failed command prevents claiming success. Inspect the package allowlist and use preview with valid/absent fixtures at narrow/wide panel sizes. Report dimensions and limitations. `npm run dev` binds localhost only. The host runtime harness is a simulation, not installation evidence.
-
-Report project/template revisions, target, environment, command results, source/bundle/package hashes and integration not-run until actual host evidence exists. Read [host and evidence guidance](references/host-and-evidence.md) before real installation/compatibility work. Do not alter a 3.5.1 host or claim later versions supported. No deploy, push, publication or global skill installation is implied.
-
-The skill is portable: copy this entire folder into the user's Codex skills directory only when installation is requested; all generator resources resolve relative to the skill folder. Generated projects contain their own scripts/lockfile and need no access to the original skill.
+Report commands and results, target, profile, tag/source, source/bundle/package hashes and limitations. Do not install into a cluster, publish, push, or deploy unless requested. Existing generated projects remain on their original template and schema; this generator does not migrate them.

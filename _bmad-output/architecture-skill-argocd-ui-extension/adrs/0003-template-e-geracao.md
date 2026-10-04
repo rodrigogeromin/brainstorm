@@ -8,7 +8,7 @@ O objetivo é repetibilidade entre pedidos independentes, com origem identificá
 
 ## Decisão
 
-Template e gerador determinístico são versionados juntos. A Skill coleta parâmetros e invoca o gerador; não reescreve build/empacotamento por improvisação. O contrato executável de geração, com esquema, defaults normalizados e tipos, pertence ao gerador e é compartilhado pela validação e pelos consumidores. Ele deve existir antes de implementar Skill e gerador independentemente; mudanças versionam schemaVersion. Fixtures importam os tipos únicos do adaptador do host. Cada projeto contém extension-project.json com schemaVersion, templateVersion, name, description, argoCdVersion, profile e registration; para resource-tab, registration contém group, kind e tabTitle. Destino é argumento da geração, não caminho absoluto persistido. Dados opcionais usam configuração explícita sem segredos. Destino existente interrompe a geração antes de escrever; autorização de alteração exige plano explícito. Atualizações nunca são automáticas.
+Template e gerador determinístico são versionados juntos. Schema v2 aceita SemVer exata e os profiles resource-tab, system-level, status-panel, top-bar-action e app-view. Presets cobrem v3.0.0 e v3.5.3; outras releases aceitam hostContract auditado como parâmetro. O gerador valida tag/versão exatas, fontes oficiais, profile, método, props, globals/JSX e mapeamento antes de criar destino. extension-project.json preserva esse contrato junto com schemaVersion, templateVersion, parâmetros e registration. Proxy é opcional e separado da UI. Destino existente interrompe a geração antes de escrever; projetos v1 não são migrados nem atualizados automaticamente.
 
 ## Alternativas consideradas
 

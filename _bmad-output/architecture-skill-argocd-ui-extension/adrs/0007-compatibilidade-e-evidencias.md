@@ -8,7 +8,7 @@ O PRD distingue o intervalo desejado de compatibilidade demonstrada.
 
 ## Decisão
 
-Fixar Argo CD exato >3.5.1 antes das dependências. Template registra versões e lockfile. Relatório identifica projeto, revisão do código gerado, versão e revisão do template, hash SHA-256 do bundle e pacote efetivamente instalados, alvo, ambiente e cada comando/check com passed, failed ou not-run. Preview e typecheck/build/package não provam integração. Só incluir versão na matriz testada após registro/renderização no host, inspeção do runtime, acesso a conteúdo em painel estreito e amplo com dimensões registradas e tema escuro quando disponível. Falha ou check obrigatório não executado impede conclusão da release inicial. Evidência vale somente para os hashes instalados e a versão exata testada; rebuild não herda validação sem confirmar identidade do artefato. Mudança de conteúdo exige nova validação integrada.
+Cada geração identifica a versão SemVer exata, tag e fontes oficiais, assinatura, props, mapa de registro e globals React da release, por preset ou hostContract fornecido. Relatório identifica projeto, profile, tag/fontes, assinatura, props, globals, revisão do template, hash SHA-256 do bundle e pacote, ambiente e cada check com passed, failed ou not-run. Preview e build local não provam integração. Só incluir uma versão na matriz integrada após registro/renderização no host exato, inspeção do runtime, acesso em painel estreito e amplo e tema escuro quando disponível. Evidência vale somente para os hashes instalados; rebuild exige confirmação de identidade. Mudança de conteúdo exige nova validação integrada.
 
 ## Alternativas consideradas
 

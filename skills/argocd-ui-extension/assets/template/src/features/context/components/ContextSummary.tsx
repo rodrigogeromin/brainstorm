@@ -1,3 +1,4 @@
+import React from 'react';
 import type {ExtensionProps} from '../../../argocd/types';
 export function ContextSummary({application, resource, tree}: ExtensionProps) {
   if (!application && !resource && !tree) return <p role="status">No context supplied by the host.</p>;

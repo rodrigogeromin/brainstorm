@@ -38,11 +38,11 @@ Uso confirmado: pessoal. Argo CD confirmado: **acima de 3.5.1**. A versão 3.5.1
 
 [ASSUMPTION A2: a primeira entrega cria Projetos gerados novos; adaptação de projetos existentes fica para evolução.] Isso concentra a validação na reutilização do Template.
 
-[ASSUMPTION A3: o primeiro perfil será uma aba de recurso ou aplicação, com contexto fornecido pelo Argo CD; um exemplo neutro demonstrará os dados recebidos.] É um caso de validação, sem inventar uma extensão de negócio para Rodrigo. Páginas globais e outros pontos poderão ser acrescentados após validar esse perfil.
+[ASSUMPTION A3: profiles de UI são selecionados por pedido e condicionados à existência de método comprovado na tag exata da release. A primeira demonstração permanece uma aba Application neutra; resource-tab, system-level, status panel, top-bar action e app view são aceitos quando comprovados.]
 
 [ASSUMPTION A4: backend próprio e automação de publicação não fazem parte da primeira entrega.] O Padrão deve permitir integração posterior sem exigir um servidor em todo projeto.
 
-[ASSUMPTION A5: uma Versão alvo exata, superior a 3.5.1 e disponível para teste, será fixada na implementação inicial.] Não escolher automaticamente a versão mais recente nem usar um intervalo aberto como evidência de compatibilidade.
+[ASSUMPTION A5: cada Projeto gerado usa uma Versão alvo SemVer exata com contrato oficial revisado. Uma faixa desejada, release vizinha ou matriz local não equivale a integração comprovada.]
 
 ## 5. Capacidades e requisitos
 
@@ -58,9 +58,9 @@ Uso confirmado: pessoal. Argo CD confirmado: **acima de 3.5.1**. A versão 3.5.1
 
 ### 5.2 Criação pela Skill
 
-**FR-3 — Descoberta dos parâmetros.** A Skill deve receber nome, descrição, destino, Versão alvo, ponto de extensão e, quando aplicável, group/kind e fonte de dados. Deve aproveitar valores já informados na conversa ou no projeto.
+**FR-3 — Descoberta dos parâmetros.** A Skill deve receber nome, descrição, destino, Versão alvo exata, profile de UI e, quando aplicável, group/kind e fonte de dados. Usa preset auditado ou consulta o código da tag oficial e registra assinatura, props, globals React e mapeamento de argumentos. Deve aproveitar valores já informados na conversa ou no projeto.
 
-**Verificação:** parâmetros que alteram contrato ou compatibilidade não são inventados silenciosamente. Nome inválido, perfil indisponível ou versão sem suporte têm resposta explícita.
+**Verificação:** parâmetros que alteram contrato ou compatibilidade não são inventados silenciosamente. Nome inválido, profile ausente naquela release, fonte indisponível ou assinatura ambígua interrompem a geração e listam alternativas comprovadas.
 
 **FR-4 — Criação consistente.** A Skill deve produzir um Projeto gerado com identificação da versão do Template e ajustes do pedido.
 
@@ -76,7 +76,7 @@ Uso confirmado: pessoal. Argo CD confirmado: **acima de 3.5.1**. A versão 3.5.1
 
 **Verificação:** Preview e extensão instalada reutilizam os mesmos componentes. Fixtures cobrem contexto válido e dados ausentes; carregamento, vazio e erro são demonstrados quando aplicáveis. Simulação não é apresentada como Validação integrada.
 
-**FR-7 — Contrato do host.** O Projeto gerado deve registrar o componente no ponto escolhido e consumir o runtime disponibilizado pelo Argo CD da Versão alvo.
+**FR-7 — Contrato do host.** O Projeto gerado deve registrar o componente no profile escolhido e consumir somente APIs, props e runtime documentados pelo código da tag exata da Versão alvo. Proxy backend é capacidade opcional independente dos profiles React.
 
 **Verificação:** bundle não inclui cópias dos módulos que devem ser fornecidos pelo host. A UI aparece no ponto configurado em Validação integrada, sem erros de carregamento ou runtime atribuíveis à extensão.
 
@@ -94,7 +94,7 @@ Uso confirmado: pessoal. Argo CD confirmado: **acima de 3.5.1**. A versão 3.5.1
 
 **Verificação:** falha interrompe a declaração de sucesso; ausência de cluster é registrada como Validação integrada pendente. Compilação bem-sucedida não é descrita como compatibilidade comprovada.
 
-**FR-11 — Compatibilidade identificada.** Cada versão do Template e Projeto gerado deve declarar Versões alvo testadas e dependências relevantes.
+**FR-11 — Compatibilidade identificada.** Cada Projeto gerado declara versão exata, tag e fontes do contrato, assinatura, props, globals React e dependências relevantes. Matriz integrada contém somente versões verificadas no host real.
 
 **Verificação:** versão fora da matriz testada é identificada como não validada; a Skill não certifica versões futuras por comparação numérica. Uma alteração de versão exige nova validação antes de ampliar a matriz.
 
@@ -109,7 +109,7 @@ Uso confirmado: pessoal. Argo CD confirmado: **acima de 3.5.1**. A versão 3.5.1
 - **NFR-3 — Manutenção:** UI de domínio pode mudar sem reescrever registro, build e empacotamento; correções no Template chegam por versões identificadas, sem atualizar projetos existentes silenciosamente.
 - **NFR-4 — Integridade:** geração preserva arquivos do usuário; recursos de desenvolvimento e credenciais não entram no Pacote.
 
-Sem backend obrigatório, SDK genérico, catálogo público, suporte universal a todos os pontos de extensão ou promessa de compatibilidade futura automática. Não há SLA empresarial ou requisito multiusuário para este uso pessoal.
+Sem backend obrigatório, SDK genérico, catálogo público, suporte universal a releases ou promessa de compatibilidade futura automática. Resource actions e custom health checks não são profiles React. Não há SLA empresarial ou requisito multiusuário para este uso pessoal.
 
 ## 7. Sucesso e critérios de conclusão
 

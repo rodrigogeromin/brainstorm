@@ -12,10 +12,10 @@ module.exports = (_, argv) => {
     devtool: false,
     resolve: {extensions: ['.tsx', '.ts', '.js']},
     module: {rules: [
-      {test: /\.tsx?$/, exclude: /node_modules/, use: {loader: 'ts-loader', options: {transpileOnly: true, compilerOptions: {noEmit: false}}}},
+      {test: /\.tsx?$/, exclude: /node_modules/, use: {loader: 'ts-loader', options: {transpileOnly: true, compilerOptions: {noEmit: false, jsx: config.hostContract.jsxMode === 'automatic' ? 'react-jsx' : 'react'}}}},
       {test: /\.css$/, use: ['style-loader', 'css-loader']}
     ]},
-    externals: production ? {'react': 'React', 'react-dom': 'ReactDOM', 'react/jsx-runtime': 'ReactJSXRuntime'} : {},
+    externals: production ? Object.fromEntries(config.hostContract.globals.map(name => [name === 'React' ? 'react' : name === 'ReactDOM' ? 'react-dom' : 'react/jsx-runtime', name])) : {},
     optimization: {splitChunks: false, runtimeChunk: false, moduleIds: 'deterministic'},
     plugins: [new webpack.optimize.LimitChunkCountPlugin({maxChunks: 1}), ...(production ? [
       {apply(compiler) {compiler.hooks.done.tap('ModuleEvidence', stats => {

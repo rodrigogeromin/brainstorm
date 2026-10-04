@@ -1,4 +1,4 @@
-# ADR-0004 — Perfil inicial de aba de Application
+# ADR-0004 — Profiles condicionados à versão
 
 Data: 2026-10-03. Status: Proposto [ASSUMPTION]. Identificador estável: AD-4.
 
@@ -8,7 +8,7 @@ O PRD deixou aba de recurso ou aplicação como suposição; é necessário um c
 
 ## Decisão
 
-O primeiro perfil é resource-tab, registrado para group argoproj.io e kind Application. O exemplo neutro mostra contexto recebido, sem funcionalidades de negócio. O adaptador aceita os props documentados application, resource e tree; fixtures seguem os mesmos tipos e tratam ausências. Perfis adicionais exigem adaptador, fixtures e evidência próprios. O pedido pode parametrizar group/kind quando o perfil for validado para outros recursos.
+Os profiles são resource-tab (incluindo Application via argoproj.io/Application), system-level, status-panel, top-bar-action e app-view, condicionados ao contrato da tag selecionada. Presets cobrem v3.0.0 e v3.5.3; outras releases precisam fornecer hostContract auditado com URL oficial, método, assinatura, props, globals e argumentMap. O adaptador resolve o mapeamento declarado, sem comparações com versões vizinhas. Método ausente ou assinatura ambígua bloqueia geração. Flyouts e filtros só são usados quando a assinatura aceita. Resource actions e custom health checks não pertencem a estes profiles React.
 
 ## Alternativas consideradas
 

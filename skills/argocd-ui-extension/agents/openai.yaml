@@ -1,4 +1,4 @@
 interface:
   display_name: "Argo CD UI Extension"
-  short_description: "Generate and verify Argo CD resource-tab projects"
-  default_prompt: "Use $argocd-ui-extension to create a new Application resource-tab project for Argo CD 3.5.3."
+  short_description: "Generate Argo CD UI extensions from audited release contracts"
+  default_prompt: "Use $argocd-ui-extension to create a UI extension for an exact Argo CD release and selected profile."
