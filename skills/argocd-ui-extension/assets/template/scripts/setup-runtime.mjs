@@ -7,7 +7,12 @@ if(!runtime)throw new Error('Audited hostContract.runtime is required before run
 const major=Number(runtime.react.split('.')[0]);
 if(![16,17,18,19].includes(major))throw new Error('Unsupported React runtime; audit preview and testing tools first');
 const pkg=JSON.parse(await readFile('package.json','utf8'));
-Object.assign(pkg.dependencies,{react:runtime.react,'react-dom':runtime.reactDom});
+pkg.devDependencies??={};
+for(const [name,version] of [['react',runtime.react],['react-dom',runtime.reactDom]]){
+  const section=Object.hasOwn(pkg.devDependencies,name)&&!Object.hasOwn(pkg.dependencies??{},name)?'devDependencies':'dependencies';
+  pkg[section]??={};pkg[section][name]=version;
+  delete pkg[section==='dependencies'?'devDependencies':'dependencies']?.[name];
+}
 Object.assign(pkg.devDependencies,{'@types/react':runtime.typesReact,'@types/react-dom':runtime.typesReactDom,'@testing-library/react':major<18?'12.1.5':'16.3.2'});
 const ts=JSON.parse(await readFile('tsconfig.json','utf8'));ts.compilerOptions.jsx=project.hostContract.jsxMode==='automatic'?'react-jsx':'react';
 await writeFile('package.json',JSON.stringify(pkg,null,2)+'\n');await writeFile('tsconfig.json',JSON.stringify(ts,null,2)+'\n');

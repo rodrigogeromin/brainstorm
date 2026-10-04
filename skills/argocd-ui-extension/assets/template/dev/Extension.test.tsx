@@ -21,13 +21,14 @@ function expectedArguments(){return (contract.argumentMap as string[]).map(token
 test('renders valid immutable host context without changing it', () => {
   const before = JSON.stringify(validContext);
   render(<Extension {...validContext} />);
-  expect(screen.getAllByText('example-application')).toHaveLength(2);
-  expect(screen.getByText('Healthy')).toBeInTheDocument();
+  if(project.profile==='top-bar-action'){expect(screen.getByText(registration.title!)).toBeInTheDocument();expect(screen.queryByRole('button')).not.toBeInTheDocument();}
+  else{expect(screen.getAllByText('example-application')).toHaveLength(2);expect(screen.getByText('Healthy')).toBeInTheDocument();}
   expect(JSON.stringify(validContext)).toBe(before);
 });
 test('renders missing context', () => {
   render(<Extension {...absentContext} />);
-  expect(screen.getByRole('status')).toHaveTextContent('No context');
+  if(project.profile==='top-bar-action')expect(screen.getByText(registration.title!)).toBeInTheDocument();
+  else expect(screen.getByRole('status')).toHaveTextContent('No context');
 });
 test('registers the same component using the host contract', () => {
   const fn = jest.fn();
@@ -45,7 +46,7 @@ test('registers the same component using the host contract', () => {
 test('flyout action follows enabled profile and host context',()=>{
  const open=jest.fn();render(<Extension {...validContext} openFlyout={open}/>);
  const button=screen.queryByRole('button',{name:'Open details'});
- if(registration.flyout && ['top-bar-action','status-panel'].includes(project.profile)){expect(button).toBeInTheDocument();fireEvent.click(button!);expect(open).toHaveBeenCalledTimes(1);}else expect(button).not.toBeInTheDocument();
+ if(registration.flyout && project.profile==='status-panel'){expect(button).toBeInTheDocument();fireEvent.click(button!);expect(open).toHaveBeenCalledTimes(1);}else expect(button).not.toBeInTheDocument();
 });
 test('flyout content receives separate context',()=>{
  render(<ExtensionFlyout application={validContext.application} tree={validContext.tree}/>);

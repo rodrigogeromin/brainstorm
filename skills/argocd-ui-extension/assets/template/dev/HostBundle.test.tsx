@@ -43,15 +43,22 @@ test('production bundle registers and renders against simulated host globals', (
   if (!component) throw new Error('No host registration');
   const Component = component;
   const openFlyout=jest.fn();
-  render(<Component {...frozen} {...(contract.props.includes('openFlyout')?{openFlyout}:{})} />);
-  if(registration.flyout&&contract.props.includes('openFlyout')){fireEvent.click(screen.getByRole('button',{name:'Open details'}));expect(openFlyout).toHaveBeenCalledTimes(1);}
+  if(project.profile==='top-bar-action'){
+    render(<button type="button" onClick={openFlyout}><i className={registration.icon} aria-hidden="true"/><Component {...frozen} openFlyout={openFlyout}/></button>);
+    expect(document.querySelector('button button')).not.toBeInTheDocument();
+    expect(document.querySelectorAll('button')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button',{name:registration.title}));expect(openFlyout).toHaveBeenCalledTimes(1);
+  }else render(<Component {...frozen} {...(contract.props.includes('openFlyout')?{openFlyout}:{})} />);
+  if(registration.flyout&&project.profile==='status-panel'&&contract.props.includes('openFlyout')){fireEvent.click(screen.getByRole('button',{name:'Open details'}));expect(openFlyout).toHaveBeenCalledTimes(1);}
   const callbackIndex=contract.argumentMap.indexOf('callback.shouldDisplay');
   if(callbackIndex>=0){const callback=register.mock.calls[0][callbackIndex] as unknown as (application?:typeof validContext.application)=>boolean;expect(callback(validContext.application)).toBe(registration.shouldDisplay??true);expect(callback(undefined)).toBe(registration.shouldDisplay??true);}
-  if(contract.props.includes('application'))expect(screen.getByText('Healthy')).toBeInTheDocument();
+  if(project.profile==='top-bar-action')expect(screen.getByText(registration.title!)).toBeInTheDocument();
+  else if(contract.props.includes('application'))expect(screen.getByText('Healthy')).toBeInTheDocument();
   else expect(screen.getByRole('status')).toHaveTextContent('No context');
   cleanup();
   render(<Component />);
-  expect(screen.getByRole('status')).toHaveTextContent('No context');
+  if(project.profile==='top-bar-action')expect(screen.getByText(registration.title!)).toBeInTheDocument();
+  else expect(screen.getByRole('status')).toHaveTextContent('No context');
   expect(globals.React).toBe(React);
   expect(globals.ReactDOM).toBe(ReactDOM);
   if(contract.globals.includes('ReactJSXRuntime'))expect(globals.ReactJSXRuntime).toBe(jsxRuntime);

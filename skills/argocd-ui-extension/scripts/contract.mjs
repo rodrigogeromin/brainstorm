@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {isDeepStrictEqual} from 'node:util';
 export const schema=JSON.parse(readFileSync(new URL('../references/parameters.schema.json',import.meta.url),'utf8'));
 export const schemaVersion=2;
-export const templateVersion='2.2.0';
+export const templateVersion='2.2.1';
 const methodsByProfile={
   'resource-tab':'registerResourceExtension',
   'system-level':'registerSystemLevelExtension',
@@ -130,8 +130,9 @@ export function normalize(input){
 export function validateProject(project){
   if(!project||typeof project!=='object'||Array.isArray(project))throw new Error('Project configuration must be an object');
   const normalized=normalize(Object.fromEntries(Object.keys(schema.properties).filter(k=>Object.hasOwn(project,k)).map(k=>[k,project[k]])));
-  if(project.schemaVersion!==schemaVersion||project.templateVersion!==templateVersion)throw new Error('Unsupported project schema/template version');
+  if(project.schemaVersion!==schemaVersion)throw new Error('Unsupported project schema version; explicit manifest migration required');
+  if(typeof project.templateVersion!=='string'||!new RegExp(schema.properties.argoCdVersion.pattern).test(project.templateVersion))throw new Error('Project templateVersion must record a valid SemVer origin');
   if(!isDeepStrictEqual(project.hostContract,normalized.hostContract))throw new Error('Host contract provenance does not match the audited release');
   if(!isDeepStrictEqual(project.registration,normalized.registration))throw new Error('Project registration must include normalized values; defaults cannot replace missing manifest fields');
-  return normalized;
+  return {...normalized,templateVersion:project.templateVersion};
 }

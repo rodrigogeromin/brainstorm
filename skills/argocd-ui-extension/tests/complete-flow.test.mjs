@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,writeFile,readFile,readdir} from 'node:fs/promises';
+import {mkdtemp,writeFile,readFile,readdir,mkdir,chmod} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {generate} from '../scripts/generate.mjs';
 import {auditHost} from '../scripts/audit-host.mjs';
 import {migrateManifest} from '../scripts/migrate-manifest.mjs';
 import {normalize,validateProject} from '../scripts/contract.mjs';
@@ -23,7 +25,7 @@ test('auditor discovers yarn and records hashes without reviewing contract; fail
 test('explicit migration preserves source/custom data and clears integration; alias conflicts reject',async()=>{
  const dir=await mkdtemp(path.join(tmpdir(),'argocd-migrate-')),src=path.join(dir,'old.json'),dest=path.join(dir,'new.json');
  const old={...base,schemaVersion:1,templateVersion:'1.0.0',profile:'top-bar-action-menu',registration:{iconClassName:'fa-book'},custom:{keep:true},origin:{templateSha256:'old'},compatibility:{integrated:['3.0.0']}};
- await writeFile(src,JSON.stringify(old));const before=await readFile(src,'utf8');const migrated=await migrateManifest(src,dest,normalize(base).hostContract);assert.equal(await readFile(src,'utf8'),before);assert.equal(migrated.profile,'top-bar-action');assert.equal(migrated.registration.icon,'fa-book');assert.deepEqual(migrated.custom,old.custom);assert.deepEqual(migrated.compatibility.integrated,[]);assert.equal(migrated.origin.templateSha256,'old');
+ await writeFile(src,JSON.stringify(old));const before=await readFile(src,'utf8');const migrated=await migrateManifest(src,dest,normalize(base).hostContract);assert.equal(await readFile(src,'utf8'),before);assert.equal(migrated.profile,'top-bar-action');assert.equal(migrated.registration.icon,'fa-book');assert.deepEqual(migrated.custom,old.custom);assert.deepEqual(migrated.compatibility.integrated,[]);assert.equal(migrated.origin.templateSha256,'old');assert.equal(migrated.templateVersion,'1.0.0');assert.equal(validateProject(migrated).templateVersion,'1.0.0');assert.equal(migrated.origin.adaptations.at(-1).validatorTemplate,normalize(base).templateVersion);
  await assert.rejects(migrateManifest(src,dest,normalize(base).hostContract),/already exists/);
  await assert.rejects(migrateManifest(src,path.join(dir,'absent.json')),/required/);
  await writeFile(src,JSON.stringify({...old,registration:{icon:'other',iconClassName:'fa-book'}}));await assert.rejects(migrateManifest(src,path.join(dir,'conflict.json'),normalize(base).hostContract),/Conflicting/);
@@ -51,4 +53,31 @@ test('migration upgrades a separately prepared target copy while preserving orig
  assert.equal(migrated.argoCdVersion,'3.5.1');assert.equal(migrated.hostContract.tag,'v3.5.1');assert.equal(migrated.hostContract.runtime.react,'19.2.6');
  assert.deepEqual(migrated.origin.adaptations.slice(0,2),copy.origin.adaptations);assert.deepEqual(migrated.custom,old.custom);
  assert.equal(await readFile(original,'utf8'),before);assert.equal(await readFile(prepared,'utf8'),copyBefore);assert.deepEqual(migrated.compatibility.integrated,[]);
+});
+
+test('template provenance does not force a schema-compatible project to migrate on every skill release',()=>{
+ const project=normalize(base);
+ for(const version of ['2.0.0','2.2.0','2.2.1'])assert.equal(validateProject({...project,templateVersion:version}).templateVersion,version);
+ assert.throws(()=>validateProject({...project,schemaVersion:1}),/schema version/);
+ assert.throws(()=>validateProject({...project,templateVersion:'invalid'}),/SemVer/);
+ assert.throws(()=>validateProject({...project,templateVersion:'2.0.0',hostContract:{...project.hostContract,tag:'v3.5.1'}}),/tag/);
+});
+
+
+test('runtime setup adapts a custom project with React in devDependencies without replacing its tooling',async()=>{
+ const root=await mkdtemp(path.join(tmpdir(),'argocd-dev-runtime-')),dest=path.join(root,'project'),bin=path.join(root,'bin');
+ await generate({...base,argoCdVersion:'3.5.1'},dest);
+ const pkg=JSON.parse(await readFile(path.join(dest,'package.json'),'utf8'));
+ delete pkg.dependencies;Object.assign(pkg.devDependencies,{react:'19.0.0','react-dom':'19.0.0',jest:'30.5.2'});
+ pkg.version='0.7.0';pkg.scripts.package='sh scripts/custom-package.sh';
+ await writeFile(path.join(dest,'package.json'),JSON.stringify(pkg));
+ await mkdir(bin);const npm=path.join(bin,'npm');
+ // Only intercept the registry/lock update; execute the actual setup and file merges.
+ await writeFile(npm,'#!/usr/bin/env node\nprocess.exit(0);\n');await chmod(npm,0o755);
+ const run=spawnSync(process.execPath,['scripts/setup-runtime.mjs'],{cwd:dest,encoding:'utf8',env:{...process.env,PATH:bin+path.delimiter+process.env.PATH}});
+ assert.equal(run.status,0,run.stdout+run.stderr);
+ const after=JSON.parse(await readFile(path.join(dest,'package.json'),'utf8'));
+ assert.equal(after.devDependencies.react,'19.2.6');assert.equal(after.devDependencies['react-dom'],'19.2.6');
+ assert.equal(after.dependencies,undefined);assert.equal(after.devDependencies.jest,'30.5.2');
+ assert.equal(after.version,'0.7.0');assert.equal(after.scripts.package,pkg.scripts.package);
 });

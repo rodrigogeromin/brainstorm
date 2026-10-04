@@ -7,9 +7,11 @@ import '../styles/extension.css';
 export function Extension(props: ExtensionProps) {
   const registration = project.registration as ProjectRegistration;
   const title = project.profile === 'resource-tab' ? registration.tabTitle : registration.title;
+  // Argo renders this component as the action label and owns the clickable control.
+  if(project.profile === 'top-bar-action') return <span>{title}</span>;
   return <section id="argocd-ext-__EXTENSION_NAME__" aria-label={title} tabIndex={0}>
     <h1>{title}</h1>
-    {registration.flyout && (project.profile === 'top-bar-action' || project.profile === 'status-panel') && props.openFlyout && <button type="button" onClick={props.openFlyout}>Open details</button>}
+    {registration.flyout && project.profile === 'status-panel' && props.openFlyout && <button type="button" onClick={props.openFlyout}>Open details</button>}
     <p>{project.description}</p>
     <ContextSummary {...props} />
   </section>;

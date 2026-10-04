@@ -18,6 +18,10 @@ export async function sourceRevision() {
   for (const file of ['extension-project.json','package.json','package-lock.json','webpack.config.cjs','tsconfig.json','eslint.config.mjs','jest.config.cjs']) h.update(file+'\0').update(await readFile(file)).update('\0');
   return h.digest('hex');
 }
+async function configuredRuntime(){
+  const pkg=JSON.parse(await readFile('package.json','utf8'));
+  return Object.fromEntries(['react','react-dom','@types/react','@types/react-dom'].map(name=>[name,pkg.dependencies?.[name]??pkg.devDependencies?.[name]??null]));
+}
 export async function installedRuntime(){
   const result={};
   for(const name of ['react','react-dom','@types/react','@types/react-dom','@testing-library/react'])try{result[name]=JSON.parse(await readFile(`node_modules/${name}/package.json`,'utf8')).version;}catch{result[name]=null;}
@@ -35,7 +39,7 @@ export async function projectConfiguration({checkRuntime=true}={}) {
 export async function identity({includeArtifacts = true, validateConfiguration = true} = {}) {
   const p = JSON.parse(await readFile('extension-project.json','utf8'));
   if (validateConfiguration) validateProject(p);
-  return {project:p.name ?? null, target:p.argoCdVersion ?? null, profile:p.profile ?? null, sourceTag:p.hostContract?.tag ?? null, sources:p.hostContract?.sources ?? [], signature:p.hostContract?.signature ?? null, props:p.hostContract?.props ?? [], globals:p.hostContract?.globals ?? [], runtime:p.hostContract?.runtime ?? null, flyoutProps:p.hostContract?.flyoutProps ?? [], localRuntime:await installedRuntime(), configuredRuntime:JSON.parse(await readFile('package.json','utf8')).dependencies, templateVersion:p.templateVersion ?? null, templateRevision:p.origin?.templateSha256 ?? null, sourceRevision:await sourceRevision(), bundleSha256:includeArtifacts ? hash(await readFile(`dist/resources/extension-${p.name}.js`)) : null, packageSha256:includeArtifacts ? hash(await readFile(`dist/${p.name}.tar.gz`)) : null};
+  return {project:p.name ?? null, target:p.argoCdVersion ?? null, profile:p.profile ?? null, sourceTag:p.hostContract?.tag ?? null, sources:p.hostContract?.sources ?? [], signature:p.hostContract?.signature ?? null, props:p.hostContract?.props ?? [], globals:p.hostContract?.globals ?? [], runtime:p.hostContract?.runtime ?? null, flyoutProps:p.hostContract?.flyoutProps ?? [], localRuntime:await installedRuntime(), configuredRuntime:await configuredRuntime(), templateVersion:p.templateVersion ?? null, templateRevision:p.origin?.templateSha256 ?? null, sourceRevision:await sourceRevision(), bundleSha256:includeArtifacts ? hash(await readFile(`dist/resources/extension-${p.name}.js`)) : null, packageSha256:includeArtifacts ? hash(await readFile(`dist/${p.name}.tar.gz`)) : null};
 }
 export async function checkEvidence(report) {
   await projectConfiguration();
