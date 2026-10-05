@@ -23,6 +23,14 @@ The generated `extension-project.json` records exact version, profile, official 
 
 Implement the domain UI, data strategy, loading/error/empty states and profile-specific behavior described in [profile construction](references/profile-guide.md). Extend adapter types from the target's official models for fields the feature needs. Replace scaffold assumptions in tests with assertions for the requested behavior; keep host registration, context immutability and production-runtime checks.
 
+## Mandatory feature help
+
+Include a visible **Help** button for the feature in every Argo CD UI extension, when creating or adapting it, regardless of registration profile. Clicking it must open a flyout inside the Argo CD UI containing the feature's README rendered as Markdown. Use the audited host flyout when the selected extension point supports it; otherwise implement a feature-owned flyout without changing the registration profile.
+
+Maintain the feature README as the single source of help content and include it in the delivered extension so help remains available without an external documentation service. Document the feature's purpose, behavior, usage, configuration, prerequisites and limitations; update it whenever the functionality changes. Render headings, lists, links, tables and code blocks as formatted Markdown, not raw Markdown or a placeholder. Disable raw HTML or sanitize it.
+
+Keep the Help button and flyout consistent with the host theme and the extension's visual isolation. Provide an accessible button label, keyboard operation, a close control, Escape-to-close and focus return to the Help button. Verify opening, README rendering and closing in the preview and production harness; record exact-host verification separately under the existing evidence rules. Do not consider the feature complete without its Help button, flyout and current README.
+
 In the generated directory run `npm run runtime:setup`, `npm ci`, `npm run validate`, and `npm run evidence:check`. Review all report rows. The preview and production harness simulate host globals and registration; they do not prove host integration. Integration remains `not-run` until the generated bundle is installed and tested on the exact target release. Do not add a version to the integrated matrix based on local gates.
 
 Report commands and results, target, profile, tag/source, source/bundle/package hashes and limitations. When installation is requested, read [installation](references/installation-guide.md) and use the actual environment and existing authorization. Do not install into a cluster, publish, push, or deploy unless requested. Existing projects are adapted through explicit migration and reviewed code diffs.
