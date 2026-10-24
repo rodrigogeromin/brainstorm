@@ -207,3 +207,113 @@ Bibliotecas sugeridas: FastAPI, HTTPX, Jinja2 e, na fase Kubernetes, kubernetes 
 6. Decidir se o MVP precisa apenas visualizar docs ou incluir Try it out.
 
 > **Escopo deste registro:** documentação arquitetural e plano de implementação. Não representa código já desenvolvido ou validado em execução.
+
+## 13. PoC executável (2026-10-23)
+
+As seções anteriores registram a proposta original. A PoC desta pasta implementa a fase estática com dois **upstreams de demonstração**, um programa Go com Swagger 2.0 em `/swagger/doc.json` e um programa Java com OpenAPI 3.0.3 em `/v3/api-docs`. Ambos servem HTTP real, sem frameworks ou bibliotecas externas. Não representam serviços existentes da plataforma. O namespace efetivo é `swagger-gateway`.
+
+Ambas as publicações pertencem à Application Argo CD `argocd:swagger-gateway`, projeto `appset`. O catálogo não é global: só atende esse contexto fixo, fornecido nos headers `Argocd-Application-Name` e `Argocd-Project-Name`. O gateway devolve 403 antes de resolver catálogo/UI/spec quando o contexto está ausente ou incorreto. Não existe discovery Kubernetes, acesso a outros clusters ou endpoint de execução de APIs nesta versão.
+
+### Gerar e verificar os artefatos
+
+A partir da raiz deste repositório:
+
+```sh
+python3 -m venv /tmp/swagger-gateway-venv
+/tmp/swagger-gateway-venv/bin/pip install -r swagger-gateway/requirements-dev.txt
+/tmp/swagger-gateway-venv/bin/python swagger-gateway/build_application.py
+/tmp/swagger-gateway-venv/bin/python -m pytest swagger-gateway/tests -q
+```
+
+`build_application.py` gera `application.yaml` de forma determinística. Todas as fontes ficam em ConfigMaps legíveis dentro de `spec.source.helm.valuesObject.templates`; não há checkout Git no boot. O gerador recusa fontes contendo `{{`, que colidiriam com `tpl` do Helm. Cada Deployment inclui checksum das suas fontes para provocar rollout quando o código muda. Regere o manifesto sempre que alterar código, dependências ou HTML.
+
+O chart é `raw` **2.0.2** do Bedag; `valueFiles: [values.yaml]` usa os defaults do próprio chart, com `valuesObject` fornecendo os recursos. Para renderizar os mesmos recursos localmente:
+
+```sh
+/tmp/swagger-gateway-venv/bin/python - <<'PY'
+from pathlib import Path
+import yaml
+application = yaml.safe_load(Path('swagger-gateway/application.yaml').read_text())
+Path('/tmp/swagger-gateway-values.yaml').write_text(yaml.safe_dump(application['spec']['source']['helm']['valuesObject']))
+PY
+helm template swagger-gateway raw --repo https://bedag.github.io/helm-charts \
+  --version 2.0.2 --namespace swagger-gateway \
+  -f /tmp/swagger-gateway-values.yaml > /tmp/swagger-gateway-rendered.yaml
+kubectl apply --dry-run=server -f /tmp/swagger-gateway-rendered.yaml
+```
+
+O dry-run de recursos namespaced pressupõe que o namespace já exista. Para uma primeira instalação, valide/aplique o Application e deixe o Argo CD criar o namespace antes do dry-run completo.
+
+### Aplicar no Argo CD
+
+Pré-requisitos: contexto correto (`k3d-dev` na validação original), Argo CD 3.5.1 no namespace `argocd`, projeto `appset` permitindo o chart/destino/recursos, acesso à CDN no navegador e acesso a registries/PyPI no cluster.
+
+```sh
+kubectl apply --dry-run=server -f swagger-gateway/application.yaml
+kubectl apply -f swagger-gateway/application.yaml
+kubectl patch configmap argocd-cm -n argocd --type merge \
+  --patch-file swagger-gateway/argocd-proxy.patch.yaml
+kubectl patch configmap argocd-cmd-params-cm -n argocd --type merge \
+  --patch-file swagger-gateway/argocd-params.patch.yaml
+kubectl patch configmap argocd-rbac-cm -n argocd --type merge \
+  --patch-file swagger-gateway/argocd-rbac.patch.yaml
+kubectl rollout restart deployment/argocd-server -n argocd
+kubectl rollout status deployment/argocd-server -n argocd --timeout=180s
+kubectl get application swagger-gateway -n argocd
+kubectl get deployments,pods,services,networkpolicies -n swagger-gateway
+```
+
+Os patches usam merge de chaves dedicadas: `extension.config.swagger` em `argocd-cm`, `server.enable.proxy.extension` em `argocd-cmd-params-cm` e `policy.swagger.csv` em `argocd-rbac-cm`. Preservam as outras entradas e integrações. A regra RBAC concede apenas a `role:admin` a operação `extensions, invoke, swagger`, que exige autorização explícita mesmo para administradores. A configuração proxy contém apenas um backend, o Service do gateway. Argo CD remove `/extensions/swagger` antes de encaminhar ao gateway.
+
+O sync automatizado habilita self-heal e **não** habilita prune. O manifesto cria Namespace, três ConfigMaps, três Deployments, três Services e uma NetworkPolicy, sem RBAC Kubernetes e sem montagem de token de ServiceAccount. Remover o Application não faz limpeza em cascata automática.
+
+### Depuração por port-forward
+
+```sh
+kubectl port-forward -n swagger-gateway service/swagger-gateway 18088:8080
+```
+
+Em outro terminal:
+
+```sh
+curl --fail http://127.0.0.1:18088/healthz
+curl --fail -H 'Argocd-Application-Name: argocd:swagger-gateway' \
+  -H 'Argocd-Project-Name: appset' http://127.0.0.1:18088/api/v1/catalog
+curl --fail -H 'Argocd-Application-Name: argocd:swagger-gateway' \
+  -H 'Argocd-Project-Name: appset' http://127.0.0.1:18088/specs/go-demo
+curl --fail -H 'Argocd-Application-Name: argocd:swagger-gateway' \
+  -H 'Argocd-Project-Name: appset' http://127.0.0.1:18088/specs/java-demo
+curl -i http://127.0.0.1:18088/api/v1/catalog
+```
+
+O último comando deve retornar 403. O port-forward é acesso administrativo e permite fornecer o contexto manualmente; **não é evidência de autenticação pelo Argo CD**. `/healthz` independe de contexto para permitir probes.
+
+### Abrir no Argo CD autenticado
+
+Entre normalmente na interface do Argo CD com um usuário autorizado a `applications, get` para `appset/swagger-gateway` e `extensions, invoke` para `swagger` (administrador atende para a PoC). Abra DevTools → Console e cole o conteúdo de [`bootstrap.js`](bootstrap.js). Um diálogo mostra o seletor das duas publicações e a mesma Swagger UI universal. Alternar a seleção não muda `argocd-cm`.
+
+O bootstrap primeiro faz `fetch` autenticado do catálogo e do HTML com os dois headers de contexto e `credentials: same-origin`, depois atribui o HTML a `iframe.srcdoc`. Um `iframe.src` direto não fornece headers e não funciona para o HTML protegido. O documento `srcdoc` herda a origem Argo CD; `requestInterceptor` acrescenta os headers ao fetch da spec. JS/CSS vêm de `swagger-ui-dist@5.17.14` via jsDelivr. `supportedSubmitMethods: []` desabilita Try it out e `validatorUrl: null` evita envio a um validador externo.
+
+No painel Network, confirme catálogo, HTML e spec sob a origem Argo CD em `/extensions/swagger`; nenhum fetch da spec deve ir ao DNS Kubernetes. Confira também as duas versões (Swagger 2 / OpenAPI 3) renderizadas. Se houver CSP própria na instalação, ela precisa permitir os assets CDN e o iframe `srcdoc`; esta PoC não altera CSP da instalação.
+
+### Fronteira de confiança e limitações
+
+- Headers de contexto não provam identidade. A autenticação e autorização são feitas pelo Proxy Extension Argo CD. A NetworkPolicy permite ingresso ao gateway na porta 8080 somente de pods `app.kubernetes.io/name=argocd-server` no namespace `argocd`; namespaceSelector e podSelector estão no mesmo peer. A proteção pressupõe CNI com enforcement de NetworkPolicy e controle de quem pode criar/rotular pods no namespace Argo CD. Probes do kubelet e port-forward administrativo não são prova dessa fronteira.
+- Registry estático aceita só `go-demo`/`java-demo`, nunca URL fornecida pelo usuário. Timeout de conexão de 2 segundos e de I/O de 5 segundos, resposta limitada a 1 MiB; solicita `Accept-Encoding: identity` e rejeita qualquer `Content-Encoding` diferente de ausente/`identity` antes de ler o corpo, impedindo descompressão de payloads comprimidos, redirects recusados, documentos JSON exigindo Swagger 2.0/OpenAPI 3, `info` e `paths`. Erros de upstream retornam 502 ou 504 sem URL interna. Isso é validação mínima de estrutura, não um validador OpenAPI completo.
+- Catálogo omite upstream e DNS interno. As specs de demonstração também não contêm endereços internos. Não há sanitização geral de documentos arbitrários ou autorização por tenant.
+- Instalar Python packages e compilar Go/Java no boot é concessão da PoC. O cluster precisa acessar PyPI/registries; startup probes toleram até dez minutos. Dependências Python diretas, imagens e assets CDN têm versões fixadas; não há lock completo com hashes para dependências transitivas nem imagens por digest. Para produção, construir imagens próprias e revisar dependências.
+- UI/HTML são confiáveis e executam no contexto da origem Argo CD via `srcdoc`. Não carregar HTML de upstreams ou aceitar templates arbitrários nesse fluxo. A CDN precisa ser confiável; não há integridade SRI nesta PoC.
+- Não foi criada uma nova Top Bar UI Extension. O snippet de console demonstra o mecanismo; integração visual permanente fica para uma etapa posterior. O shards-generator permanece independente.
+
+Os testes automatizados cobrem autorização, catálogo, os dois formatos e HTML, IDs inválidos, upstream indisponível/timeout/redirect/inválido/grande e geração determinística. Evidência de cluster e de autenticação pelo Proxy Extension deve ser registrada separadamente da inspeção visual no navegador.
+
+### Evidência de execução — 2026-10-23
+
+- Instalado no contexto `k3d-dev`, Application `argocd/swagger-gateway`, projeto `appset`; os três Deployments ficaram disponíveis e a Application atingiu `Synced / Healthy`.
+- Helm `raw:2.0.2` renderizou 11 recursos; dry-run server do Application e de todos os recursos passou. Os 37 testes de contrato passaram, incluindo recusa de respostas comprimidas antes da leitura.
+- Com sessão autenticada pelo Argo CD: catálogo, HTML e spec das duas publicações retornaram 200 através de `/extensions/swagger`. As specs identificaram Swagger 2.0 (Go) e OpenAPI 3.0.3 (Java).
+- Sem cookie de autenticação: 400 `Auth cookie not found`. Com autenticação, sem headers de contexto: 400. ID desconhecido com contexto autorizado: 404. Um pod Go fora do peer permitido pela NetworkPolicy não conseguiu acessar diretamente o gateway, enquanto o proxy Argo CD conseguiu.
+- A permissão explícita `extensions, invoke, swagger` foi necessária inclusive para `role:admin` nesta instalação; está no patch RBAC dedicado.
+- **Inspeção visual pendente:** nenhum navegador estava disponível nesta sessão. HTML e endpoints foram verificados por HTTP; renderização da CDN, seletor e `iframe.srcdoc` devem ser conferidos com o bootstrap acima. Não há evidência visual de funcionamento do iframe nesta entrega.
+
+Contrato de proxy conferido no [código oficial Argo CD v3.5.1](https://github.com/argoproj/argo-cd/blob/v3.5.1/server/extension/extension.go) e na [documentação da mesma versão](https://github.com/argoproj/argo-cd/blob/v3.5.1/docs/developer-guide/extensions/proxy-extensions.md).

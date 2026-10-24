@@ -1,0 +1,477 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: swagger-gateway
+  namespace: argocd
+spec:
+  project: appset
+  source:
+    repoURL: https://bedag.github.io/helm-charts
+    chart: raw
+    targetRevision: 2.0.2
+    helm:
+      valueFiles:
+      - values.yaml
+      valuesObject:
+        templates:
+        - |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: swagger-gateway
+        - |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: swagger-gateway-source
+            namespace: swagger-gateway
+          data:
+            main.py: |
+              """Static, documentation-only gateway behind the Argo CD extension proxy."""
+              from contextlib import asynccontextmanager
+              import json
+              from pathlib import Path
+              import re
+
+              import httpx
+              from fastapi import Depends, FastAPI, HTTPException, Request
+              from fastapi.responses import HTMLResponse, JSONResponse
+
+              PREFIX = "/extensions/swagger"
+              CONTEXT = {"Argocd-Application-Name": "argocd:swagger-gateway", "Argocd-Project-Name": "appset"}
+              MAX_SPEC_BYTES = 1024 * 1024
+              REGISTRY = {
+                  "go-demo": {"title": "Go demo (demonstration)", "upstream": "http://swagger-go:8080/swagger/doc.json"},
+                  "java-demo": {"title": "Java demo (demonstration)", "upstream": "http://swagger-java:8080/v3/api-docs"},
+              }
+
+
+              @asynccontextmanager
+              async def lifespan(app):
+                  async with httpx.AsyncClient(timeout=httpx.Timeout(5.0, connect=2.0), follow_redirects=False, trust_env=False) as client:
+                      app.state.client = client
+                      yield
+
+
+              app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+
+              def authorize(request: Request):
+                  # Headers are assertions from the trusted proxy, not standalone authentication.
+                  if any(request.headers.get(key) != value for key, value in CONTEXT.items()):
+                      raise HTTPException(403, "Forbidden context")
+
+
+              def publication(publication_id: str):
+                  if not re.fullmatch(r"[a-z0-9-]{1,64}", publication_id) or publication_id not in REGISTRY:
+                      raise HTTPException(404, "Publication not found")
+                  return REGISTRY[publication_id]
+
+
+              @app.middleware("http")
+              async def safe_headers(request, call_next):
+                  response = await call_next(request)
+                  response.headers["Cache-Control"] = "no-store"
+                  response.headers["X-Content-Type-Options"] = "nosniff"
+                  return response
+
+
+              @app.get("/healthz")
+              async def health():
+                  return {"status": "ok"}
+
+
+              @app.get("/api/v1/catalog", dependencies=[Depends(authorize)])
+              async def catalog():
+                  return {"items": [
+                      {"id": key, "title": item["title"], "application": "swagger-gateway", "project": "appset",
+                       "namespace": "swagger-gateway", "demonstration": True,
+                       "specUrl": f"{PREFIX}/specs/{key}", "uiUrl": f"{PREFIX}/ui/{key}"}
+                      for key, item in REGISTRY.items()
+                  ]}
+
+
+              @app.get("/ui/{publication_id}", response_class=HTMLResponse, dependencies=[Depends(authorize)])
+              async def ui(publication_id: str):
+                  publication(publication_id)
+                  template = Path(__file__).with_name("templates").joinpath("index.html").read_text()
+                  return HTMLResponse(template.replace("__PUBLICATION_ID__", publication_id))
+
+
+              @app.get("/specs/{publication_id}", dependencies=[Depends(authorize)])
+              async def spec(publication_id: str, request: Request):
+                  record = publication(publication_id)
+                  try:
+                      async with request.app.state.client.stream("GET", record["upstream"], headers={"Accept": "application/json", "Accept-Encoding": "identity"}) as response:
+                          if response.status_code != 200:
+                              raise HTTPException(502, "Documentation unavailable")
+                          if response.headers.get("Content-Encoding", "identity").strip().lower() != "identity":
+                              raise HTTPException(502, "Compressed documentation is not supported")
+                          body = bytearray()
+                          async for chunk in response.aiter_bytes():
+                              body.extend(chunk)
+                              if len(body) > MAX_SPEC_BYTES:
+                                  raise HTTPException(502, "Documentation too large")
+                      document = json.loads(body)
+                      if not isinstance(document, dict) or not isinstance(document.get("info"), dict) or not isinstance(document.get("paths"), dict):
+                          raise ValueError("invalid specification")
+                      if document.get("swagger") != "2.0" and not str(document.get("openapi", "")).startswith("3."):
+                          raise ValueError("unsupported specification")
+                      return JSONResponse(document)
+                  except httpx.TimeoutException:
+                      raise HTTPException(504, "Documentation timed out") from None
+                  except (httpx.HTTPError, ValueError, RecursionError):
+                      raise HTTPException(502, "Invalid documentation response") from None
+            requirements.txt: |
+              fastapi==0.115.12
+              httpx==0.28.1
+              uvicorn==0.34.2
+            index.html: "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\"\
+              >\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
+              \  <title>API documentation \u2014 __PUBLICATION_ID__</title>\n  <link rel=\"\
+              stylesheet\" href=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css\"\
+              >\n  <style>body { margin: 0; background: #fafafa; } #notice { padding: 12px;\
+              \ font: 14px system-ui; }</style>\n</head>\n<body>\n  <div id=\"notice\">Demonstration:\
+              \ documentation only. API execution is disabled.</div>\n  <div id=\"swagger-ui\"\
+              ></div>\n  <script src=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js\"\
+              ></script>\n  <script>\n    SwaggerUIBundle({\n      url: '/extensions/swagger/specs/__PUBLICATION_ID__',\n\
+              \      dom_id: '#swagger-ui',\n      supportedSubmitMethods: [],\n      tryItOutEnabled:\
+              \ false,\n      validatorUrl: null,\n      withCredentials: true,\n      requestInterceptor:\
+              \ request => {\n        request.credentials = 'same-origin';\n        request.headers['Argocd-Application-Name']\
+              \ = 'argocd:swagger-gateway';\n        request.headers['Argocd-Project-Name']\
+              \ = 'appset';\n        return request;\n      }\n    });\n  </script>\n</body>\n\
+              </html>\n"
+        - |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: swagger-go-source
+            namespace: swagger-gateway
+          data:
+            main.go: |
+              // Demonstration upstream: no dependency beyond Go's standard library.
+              package main
+
+              import (
+                  "net/http"
+              )
+
+              func main() {
+                  http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
+                  http.HandleFunc("/swagger/doc.json", func(w http.ResponseWriter, r *http.Request) {
+                      w.Header().Set("Content-Type", "application/json")
+                      w.Write([]byte(`{"swagger":"2.0","info":{"title":"Go demonstration API","version":"1.0.0"},"basePath":"/","paths":{"/hello":{"get":{"summary":"Example greeting (documentation only)","responses":{"200":{"description":"Greeting"}}}}}}`))
+                  })
+                  http.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("Hello from Go demo")) })
+                  if err := http.ListenAndServe(":8080", nil); err != nil { panic(err) }
+              }
+        - |
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: swagger-java-source
+            namespace: swagger-gateway
+          data:
+            Demo.java: |
+              // Demonstration upstream: JDK HTTP server, no Maven or external dependencies.
+              import com.sun.net.httpserver.HttpServer;
+              import java.net.InetSocketAddress;
+              import java.nio.charset.StandardCharsets;
+
+              public class Demo {
+                  public static void main(String[] args) throws Exception {
+                      var server = HttpServer.create(new InetSocketAddress(8080), 0);
+                      server.createContext("/healthz", exchange -> {
+                          var body = "ok".getBytes(StandardCharsets.UTF_8);
+                          exchange.sendResponseHeaders(200, body.length);
+                          try (var stream = exchange.getResponseBody()) { stream.write(body); }
+                      });
+                      server.createContext("/v3/api-docs", exchange -> {
+                          var body = """
+                              {"openapi":"3.0.3","info":{"title":"Java demonstration API","version":"1.0.0"},"paths":{"/hello":{"get":{"summary":"Example greeting (documentation only)","responses":{"200":{"description":"Greeting"}}}}}}
+                              """.getBytes(StandardCharsets.UTF_8);
+                          exchange.getResponseHeaders().set("Content-Type", "application/json");
+                          exchange.sendResponseHeaders(200, body.length);
+                          try (var stream = exchange.getResponseBody()) { stream.write(body); }
+                      });
+                      server.createContext("/hello", exchange -> {
+                          var body = "Hello from Java demo".getBytes(StandardCharsets.UTF_8);
+                          exchange.sendResponseHeaders(200, body.length);
+                          try (var stream = exchange.getResponseBody()) { stream.write(body); }
+                      });
+                      server.start();
+                  }
+              }
+        - |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: swagger-gateway
+            namespace: swagger-gateway
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: swagger-gateway
+            template:
+              metadata:
+                labels:
+                  app: swagger-gateway
+                annotations:
+                  checksum/source: b11bc43212bd842e60cd94bbdee08db8f29746d666f88fb645d3a3735c1d3a00
+              spec:
+                automountServiceAccountToken: false
+                containers:
+                - name: swagger-gateway
+                  image: python:3.12.10-slim
+                  imagePullPolicy: IfNotPresent
+                  command:
+                  - sh
+                  - -ec
+                  - pip install --no-cache-dir -r /app/requirements.txt; cd /app; exec uvicorn
+                    main:app --host 0.0.0.0 --port 8080 --no-access-log
+                  ports:
+                  - containerPort: 8080
+                    name: http
+                  env:
+                  - name: PYTHONDONTWRITEBYTECODE
+                    value: '1'
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: 500m
+                      memory: 256Mi
+                  volumeMounts:
+                  - name: source
+                    mountPath: /app/main.py
+                    subPath: main.py
+                    readOnly: true
+                  - name: source
+                    mountPath: /app/requirements.txt
+                    subPath: requirements.txt
+                    readOnly: true
+                  - name: source
+                    mountPath: /app/templates/index.html
+                    subPath: index.html
+                    readOnly: true
+                  startupProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                    failureThreshold: 120
+                  readinessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 10
+                volumes:
+                - name: source
+                  configMap:
+                    name: swagger-gateway-source
+        - |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: swagger-go
+            namespace: swagger-gateway
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: swagger-go
+            template:
+              metadata:
+                labels:
+                  app: swagger-go
+                annotations:
+                  checksum/source: 5aada0d191839e47b68b9414d8baf3d5e5d4e56db4f0d32122994e20f805974c
+              spec:
+                automountServiceAccountToken: false
+                containers:
+                - name: swagger-go
+                  image: golang:1.24.2-alpine
+                  imagePullPolicy: IfNotPresent
+                  command:
+                  - sh
+                  - -ec
+                  - GOTOOLCHAIN=local go build -o /tmp/demo /source/main.go; exec /tmp/demo
+                  ports:
+                  - containerPort: 8080
+                    name: http
+                  env:
+                  - name: PYTHONDONTWRITEBYTECODE
+                    value: '1'
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: '1'
+                      memory: 512Mi
+                  volumeMounts:
+                  - name: source
+                    mountPath: /source
+                    readOnly: true
+                  startupProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                    failureThreshold: 120
+                  readinessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 10
+                volumes:
+                - name: source
+                  configMap:
+                    name: swagger-go-source
+        - |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: swagger-java
+            namespace: swagger-gateway
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: swagger-java
+            template:
+              metadata:
+                labels:
+                  app: swagger-java
+                annotations:
+                  checksum/source: d6bf60963a4888c7388814e293cc885267b381ac9c94dbfd52c73b42acaced54
+              spec:
+                automountServiceAccountToken: false
+                containers:
+                - name: swagger-java
+                  image: eclipse-temurin:21.0.7_6-jdk
+                  imagePullPolicy: IfNotPresent
+                  command:
+                  - java
+                  - -XX:MaxRAMPercentage=60
+                  - /source/Demo.java
+                  ports:
+                  - containerPort: 8080
+                    name: http
+                  env:
+                  - name: PYTHONDONTWRITEBYTECODE
+                    value: '1'
+                  resources:
+                    requests:
+                      cpu: 100m
+                      memory: 128Mi
+                    limits:
+                      cpu: '1'
+                      memory: 512Mi
+                  volumeMounts:
+                  - name: source
+                    mountPath: /source
+                    readOnly: true
+                  startupProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                    failureThreshold: 120
+                  readinessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 5
+                  livenessProbe:
+                    httpGet:
+                      path: /healthz
+                      port: http
+                    periodSeconds: 10
+                volumes:
+                - name: source
+                  configMap:
+                    name: swagger-java-source
+        - |
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: swagger-gateway
+            namespace: swagger-gateway
+          spec:
+            selector:
+              app: swagger-gateway
+            ports:
+            - name: http
+              port: 8080
+              targetPort: http
+        - |
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: swagger-go
+            namespace: swagger-gateway
+          spec:
+            selector:
+              app: swagger-go
+            ports:
+            - name: http
+              port: 8080
+              targetPort: http
+        - |
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: swagger-java
+            namespace: swagger-gateway
+          spec:
+            selector:
+              app: swagger-java
+            ports:
+            - name: http
+              port: 8080
+              targetPort: http
+        - |
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: swagger-gateway-from-argocd
+            namespace: swagger-gateway
+          spec:
+            podSelector:
+              matchLabels:
+                app: swagger-gateway
+            policyTypes:
+            - Ingress
+            ingress:
+            - from:
+              - namespaceSelector:
+                  matchLabels:
+                    kubernetes.io/metadata.name: argocd
+                podSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: argocd-server
+              ports:
+              - protocol: TCP
+                port: 8080
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: swagger-gateway
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
