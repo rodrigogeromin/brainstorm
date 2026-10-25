@@ -23,6 +23,13 @@
       withCredentials: true,
       requestInterceptor: request => {
         const target = new URL(request.url, gatewayOrigin);
+        if (__ARGOCD_API__) {
+          const authHeader = Object.keys(request.headers).find(name => name.toLowerCase() === 'authorization');
+          if (authHeader) {
+            request.headers['X-ArgoCD-API-Token'] = request.headers[authHeader];
+            delete request.headers[authHeader];
+          }
+        }
         if (target.pathname === '/extensions/swagger/specs/__PUBLICATION_ID__') {
           request.url = specUrl;
         } else {

@@ -50,6 +50,7 @@ spec:
               SWAGGER_PATH = "platform.io/swagger.path"
               SWAGGER_PORT = "platform.io/swagger.port"
               SWAGGER_TITLE = "platform.io/swagger.title"
+              ARGOCD_API_TOKEN_HEADER = "x-argocd-api-token"
               DISCOVERY_SELECTOR = f"{SWAGGER_ENABLED}=true"
               SERVICE_ACCOUNT = Path("/var/run/secrets/kubernetes.io/serviceaccount")
               CLUSTER_DOMAIN = os.getenv("KUBERNETES_CLUSTER_DOMAIN", "cluster.local").strip(".")
@@ -190,7 +191,9 @@ spec:
                   validate_publication_id(publication_id)
                   record = resolve_publication(publication_id, await discovered_publications(request))
                   template = Path(__file__).with_name("templates").joinpath("index.html").read_text()
-                  return HTMLResponse(template.replace("__PUBLICATION_ID__", record["id"]))
+                  is_argocd_api = record["namespace"] == "argocd" and record["service"] == "argocd-server"
+                  template = template.replace("__PUBLICATION_ID__", record["id"])
+                  return HTMLResponse(template.replace("__ARGOCD_API__", str(is_argocd_api).lower()))
 
 
               @app.get("/specs/{publication_id}", dependencies=[Depends(authorize)])
@@ -201,9 +204,9 @@ spec:
                       async with request.app.state.client.stream("GET", record["upstream"], headers={"Accept": "application/json", "Accept-Encoding": "identity"}) as response:
                           if response.status_code != 200:
                               raise HTTPException(502, "Documentation unavailable")
-                          if response.headers.get("Content-Encoding", "identity").strip().lower() != "identity":
-                              raise HTTPException(502, "Compressed documentation is not supported")
                           body = bytearray()
+                          # HTTPX's aiter_bytes() transparently decodes supported Content-Encoding
+                          # values (including gzip); enforce the size limit on decoded bytes.
                           async for chunk in response.aiter_bytes():
                               body.extend(chunk)
                               if len(body) > MAX_SPEC_BYTES:
@@ -213,6 +216,16 @@ spec:
                           raise ValueError("invalid specification")
                       if document.get("swagger") != "2.0" and not str(document.get("openapi", "")).startswith("3."):
                           raise ValueError("unsupported specification")
+                      if record["namespace"] == "argocd" and record["service"] == "argocd-server":
+                          # Argo CD's Swagger document omits auth metadata although protected
+                          # endpoints require a JWT in the Authorization header.
+                          document.setdefault("securityDefinitions", {})["BearerAuth"] = {
+                              "type": "apiKey",
+                              "name": "Authorization",
+                              "in": "header",
+                              "description": "Enter the token as: Bearer <JWT>",
+                          }
+                          document.setdefault("security", [{"BearerAuth": []}])
                       return JSONResponse(document)
                   except httpx.TimeoutException:
                       raise HTTPException(504, "Documentation timed out") from None
@@ -244,9 +257,16 @@ spec:
 
                   # Never forward the Argo CD session, origin, host, or proxy context to an API.
                   blocked_headers = {"cookie", "host", "content-length", "transfer-encoding", "connection",
-                                     "origin", "referer", "argocd-application-name", "argocd-project-name"}
+                                     "origin", "referer", "argocd-application-name", "argocd-project-name",
+                                     ARGOCD_API_TOKEN_HEADER}
                   headers = {key: value for key, value in request.headers.items()
                              if key.lower() not in blocked_headers and not key.lower().startswith(("sec-", "proxy-"))}
+                  if record["namespace"] == "argocd" and record["service"] == "argocd-server":
+                      # Argo CD's Proxy Extension strips Authorization. Accept a dedicated
+                      # non-reserved header from that hop and restore the standard API header.
+                      api_token = request.headers.get(ARGOCD_API_TOKEN_HEADER)
+                      if api_token:
+                          headers["Authorization"] = api_token
                   if self_service:
                       # The outer Argo CD proxy has authorized this request. Restore only the
                       # fixed internal gateway context so its protected API routes can be tried.
@@ -263,9 +283,9 @@ spec:
                                                                  headers=headers, content=bytes(body)) as upstream:
                           if 300 <= upstream.status_code < 400:
                               raise HTTPException(502, "API redirects are not supported")
-                          if upstream.headers.get("Content-Encoding", "identity").strip().lower() != "identity":
-                              raise HTTPException(502, "Compressed API responses are not supported")
                           response_body = bytearray()
+                          # HTTPX decodes supported Content-Encoding values while streaming, so
+                          # response limits apply to the expanded body sent to the browser.
                           async for chunk in upstream.aiter_bytes():
                               response_body.extend(chunk)
                               if len(response_body) > MAX_RESPONSE_BYTES:
@@ -301,7 +321,11 @@ spec:
               \    supportedSubmitMethods: ['get', 'post', 'put', 'patch', 'delete', 'options',\
               \ 'head'],\n      tryItOutEnabled: true,\n      validatorUrl: null,\n      withCredentials:\
               \ true,\n      requestInterceptor: request => {\n        const target = new URL(request.url,\
-              \ gatewayOrigin);\n        if (target.pathname === '/extensions/swagger/specs/__PUBLICATION_ID__')\
+              \ gatewayOrigin);\n        if (__ARGOCD_API__) {\n          const authHeader =\
+              \ Object.keys(request.headers).find(name => name.toLowerCase() === 'authorization');\n\
+              \          if (authHeader) {\n            request.headers['X-ArgoCD-API-Token']\
+              \ = request.headers[authHeader];\n            delete request.headers[authHeader];\n\
+              \          }\n        }\n        if (target.pathname === '/extensions/swagger/specs/__PUBLICATION_ID__')\
               \ {\n          request.url = specUrl;\n        } else {\n          request.url\
               \ = `${gatewayOrigin}/extensions/swagger/proxy/__PUBLICATION_ID__${target.pathname}${target.search}`;\n\
               \        }\n        request.credentials = 'same-origin';\n        request.headers['Argocd-Application-Name']\
@@ -416,7 +440,7 @@ spec:
                 labels:
                   app: swagger-gateway
                 annotations:
-                  checksum/source: 1c32c7c0d95e5d9cf667107fefca6654e66886144e67a15c1d9b2eb4c76e2086
+                  checksum/source: 63e9abe82a202c62f71c52b8b217fc775691ffe5515ffaa1a88d79e765b6106d
               spec:
                 automountServiceAccountToken: true
                 containers:

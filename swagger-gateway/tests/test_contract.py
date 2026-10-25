@@ -89,6 +89,7 @@ def test_universal_ui(client, identifier):
     assert "const gatewayOrigin = parent.location.origin" in response.text
     assert "if (target.pathname === '/extensions/swagger/specs/" in response.text
     assert "requestInterceptor" in response.text and "Argocd-Application-Name" in response.text
+    assert "__ARGOCD_API__" not in response.text and "X-ArgoCD-API-Token" in response.text
     assert "__PUBLICATION_ID__" not in response.text
 
 
@@ -111,6 +112,34 @@ def test_formats_and_resolved_upstreams(client, name, namespace, path, doc):
     main.app.state.client = async_client
     response = client.get(f"/specs/{identifier}?url=http://evil", headers=HEADERS)
     assert response.status_code == 200 and response.json() == doc
+
+
+def test_argocd_spec_advertises_bearer_authorization(client):
+    name, namespace, path = "argocd-server", "argocd", "/swagger.json"
+    doc = {"swagger": "2.0", "info": {"title": "Argo CD API"}, "paths": {"/api/v1/applications": {"get": {"responses": {}}}}}
+    mock_kubernetes([service(name, namespace=namespace, path=path, port=80)])
+    main.app.state.client = httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda request: httpx.Response(200, json=doc)))
+
+    response = client.get(f"/specs/{main.publication_id(namespace, name)}", headers=HEADERS)
+
+    assert response.status_code == 200
+    assert response.json()["securityDefinitions"]["BearerAuth"] == {
+        "type": "apiKey", "name": "Authorization", "in": "header",
+        "description": "Enter the token as: Bearer <JWT>",
+    }
+    assert response.json()["security"] == [{"BearerAuth": []}]
+
+
+def test_argocd_ui_moves_bearer_to_extension_safe_header(client):
+    name, namespace = "argocd-server", "argocd"
+    mock_kubernetes([service(name, namespace=namespace, path="/swagger.json", port=80)])
+
+    response = client.get(f"/ui/{main.publication_id(namespace, name)}", headers=HEADERS)
+
+    assert response.status_code == 200
+    assert "if (true)" in response.text
+    assert "request.headers['X-ArgoCD-API-Token'] = request.headers[authHeader]" in response.text
 
 
 def test_discovery_uses_pagination(client):
@@ -158,32 +187,33 @@ def test_upstream_failures(client, failure, expected):
     assert "secret" not in response.text and "swagger-go" not in response.text
 
 
-@pytest.mark.parametrize("encoding", ["gzip", "deflate", "br", "identity, gzip", ""])
-def test_compressed_response_rejected_without_reading(client, encoding):
+def test_compressed_api_response_is_decompressed(client):
     mock_kubernetes([service("go-demo", path="/swagger/doc.json")])
-    class UnreadStream(httpx.AsyncByteStream):
-        consumed = False
-        closed = False
-
-        async def __aiter__(self):
-            self.consumed = True
-            raise AssertionError("Encoded body must not be read or decompressed")
-            yield b""  # Make this an async generator without reading a body.
-
-        async def aclose(self):
-            self.closed = True
-
-    stream = UnreadStream()
+    import gzip
+    encoded = gzip.compress(b'{"ok":true}')
 
     def handler(request):
         assert request.headers["Accept-Encoding"] == "identity"
-        return httpx.Response(200, headers={"Content-Encoding": encoding}, stream=stream)
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=encoded)
+
+    main.app.state.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    response = client.get(f"/proxy/{main.publication_id('demo', 'go-demo')}/api/hello", headers=HEADERS)
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+
+def test_compressed_spec_response_is_decompressed(client):
+    mock_kubernetes([service("go-demo", path="/swagger/doc.json")])
+    import gzip
+    encoded = gzip.compress(b'{"swagger":"2.0","info":{"title":"Demo"},"paths":{}}')
+
+    def handler(request):
+        return httpx.Response(200, headers={"Content-Encoding": "gzip"}, content=encoded)
 
     main.app.state.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     response = client.get(f"/specs/{main.publication_id('demo', 'go-demo')}", headers=HEADERS)
-    assert response.status_code == 502
-    assert response.json()["detail"] == "Compressed documentation is not supported"
-    assert not stream.consumed and stream.closed
+    assert response.status_code == 200
+    assert response.json()["swagger"] == "2.0"
 
 
 def test_try_it_out_proxy_forwards_only_to_discovered_service(client):
@@ -200,6 +230,25 @@ def test_try_it_out_proxy_forwards_only_to_discovered_service(client):
                            headers={**HEADERS, "Authorization": "Bearer api-token", "Cookie": "argocd.token=secret",
                                     "Content-Type": "application/json"}, content=b'{"ok":true}')
     assert response.status_code == 201 and response.json() == {"created": True}
+
+
+def test_argocd_proxy_restores_authorization_from_extension_safe_header(client):
+    service_name, namespace = "argocd-server", "argocd"
+    mock_kubernetes([service(service_name, namespace=namespace, path="/swagger.json", port=80)])
+
+    def handler(request):
+        assert str(request.url) == "http://argocd-server.argocd.svc.cluster.local:80/api/v1/account"
+        assert request.headers["authorization"] == "Bearer mock-jwt"
+        assert "x-argocd-api-token" not in request.headers
+        return httpx.Response(200, json={"accounts": []})
+
+    main.app.state.client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    response = client.get(
+        f"/proxy/{main.publication_id(namespace, service_name)}/api/v1/account",
+        headers={**HEADERS, "X-ArgoCD-API-Token": "Bearer mock-jwt"},
+    )
+
+    assert response.status_code == 200 and response.json() == {"accounts": []}
 
 
 def test_try_it_out_proxy_restores_fixed_context_only_for_gateway_self_calls(client):
