@@ -82,7 +82,7 @@ def test_universal_ui(client, identifier):
     response = client.get(f"/ui/{main.publication_id('demo', service_name)}", headers=HEADERS)
     assert response.status_code == 200
     assert f"/extensions/swagger/specs/{main.publication_id('demo', service_name)}" in response.text
-    assert "swagger-ui-dist@5.17.14" in response.text
+    assert "swagger-ui-dist@5.19.0" in response.text
     assert "supportedSubmitMethods: ['get', 'post', 'put', 'patch', 'delete', 'options', 'head']" in response.text
     assert "tryItOutEnabled: true" in response.text
     assert f"/extensions/swagger/proxy/{main.publication_id('demo', service_name)}" in response.text

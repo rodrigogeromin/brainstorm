@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: appset
+  namespace: argocd
+spec:
+  sourceRepos:
+    - https://bedag.github.io/helm-charts
+  destinations:
+    - namespace: swagger-gateway
+      server: https://kubernetes.default.svc
+    - namespace: petstore
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

@@ -289,12 +289,12 @@ spec:
             index.html: "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\"\
               >\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
               \  <title>API documentation \u2014 __PUBLICATION_ID__</title>\n  <link rel=\"\
-              stylesheet\" href=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css\"\
+              stylesheet\" href=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.19.0/swagger-ui.css\"\
               >\n  <style>body { margin: 0; background: #fafafa; } #notice { padding: 12px;\
               \ font: 14px system-ui; }</style>\n</head>\n<body>\n  <div id=\"notice\">API calls\
               \ are sent through the authenticated Argo CD gateway to this discovered Service.\
               \ Write operations can change data.</div>\n  <div id=\"swagger-ui\"></div>\n \
-              \ <script src=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js\"\
+              \ <script src=\"https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.19.0/swagger-ui-bundle.js\"\
               ></script>\n  <script>\n    const gatewayOrigin = parent.location.origin;\n  \
               \  const specUrl = `${gatewayOrigin}/extensions/swagger/specs/__PUBLICATION_ID__`;\n\
               \    SwaggerUIBundle({\n      url: specUrl,\n      dom_id: '#swagger-ui',\n  \
@@ -416,7 +416,7 @@ spec:
                 labels:
                   app: swagger-gateway
                 annotations:
-                  checksum/source: f70c32cbeff3c23eaf389a762ff42434546316ac92d3d768f121fce34fa3b87e
+                  checksum/source: 1c32c7c0d95e5d9cf667107fefca6654e66886144e67a15c1d9b2eb4c76e2086
               spec:
                 automountServiceAccountToken: true
                 containers:

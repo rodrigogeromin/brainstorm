@@ -1,0 +1,14 @@
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: worker-1
+image: rancher/k3s:v1.35.9-k3s1
+servers: 1
+agents: 0
+network: k3d-lab
+options:
+  runtime:
+    ulimits:
+      - name: nofile
+        soft: 65536
+        hard: 65536
