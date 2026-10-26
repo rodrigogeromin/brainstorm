@@ -267,6 +267,24 @@ Os patches usam merge de chaves dedicadas: `extension.config.swagger` em `argocd
 
 O sync automatizado habilita self-heal e **não** habilita prune. O manifesto cria Namespace, ConfigMaps, três Deployments, três Services, uma NetworkPolicy, uma ServiceAccount, uma ClusterRole e um ClusterRoleBinding. Só o gateway recebe token projetado; a ClusterRole permite apenas listar Services. Remover o Application não faz limpeza em cascata automática.
 
+O manifesto também cria `Gateway`, `VirtualService` e `DestinationRule` Istio no namespace `swagger-gateway`. O host padrão é `swagger-gateway.local`; ajuste `INGRESS_HOST` em `build_application.py` para o DNS do ambiente e regenere os manifests. O seletor padrão do Gateway é `istio: ingressgateway`. As portas 80 e 443 usam `protocol: HTTP`; a porta 443 não termina TLS nem espera tráfego HTTPS. O VirtualService encaminha para `swagger-gateway.swagger-gateway.svc.cluster.local:8080`. Os clusters de destino precisam ter Istio instalado e um ingress gateway com o seletor configurado.
+
+### Instalar em múltiplos clusters
+
+[`applicationset.yaml`](applicationset.yaml) gera uma Application por Secret de cluster Argo CD rotulado `platform.io/swagger-gateway=enabled`. Os nomes seguem `<nome-do-cluster>-swagger-gateway`; cada instância cria os mesmos recursos no namespace `swagger-gateway` daquele cluster. O AppProject `appset` precisa permitir esse namespace em todos os destinos e os recursos cluster-scoped de RBAC.
+
+No laboratório, `register-workers.sh` adiciona esse rótulo aos workers. Depois de registrar os clusters e aplicar o AppProject, aplique o ApplicationSet no cluster de controle:
+
+```sh
+kubectl --context k3d-argocd-lab apply -f labs/k3d-argocd/appset-project.yaml
+kubectl --context k3d-argocd-lab apply -f swagger-gateway/applicationset.yaml
+kubectl --context k3d-argocd-lab get applications -n argocd
+```
+
+Para incluir outro cluster, rotule o Secret de registro Argo CD com `platform.io/swagger-gateway=enabled`. O `Application` em `application.yaml` continua sendo a opção de destino único; não aplique as duas opções ao mesmo cluster, pois ambas gerenciam os mesmos nomes de recursos. Cada gateway descobre Services apenas no próprio cluster. A configuração atual do Proxy Extension aponta para o Service local e não agrega automaticamente os catálogos dos gateways remotos.
+
+`build_application.py` gera `application.yaml` e `applicationset.yaml` a partir da mesma definição de recursos.
+
 ### Depuração por port-forward
 
 ```sh

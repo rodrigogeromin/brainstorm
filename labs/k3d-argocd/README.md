@@ -49,7 +49,7 @@ k3d cluster create --config workers/worker-2.yaml --wait
 bash register-workers.sh
 ```
 
-The script creates an `argocd-manager` service account and cluster-admin binding on each worker, then creates labeled Argo CD cluster Secrets in the `argocd` namespace. It discovers each worker load balancer's Docker IP and uses that internal network endpoint. Kubernetes API TLS verification is skipped for these dynamically addressed lab endpoints; traffic remains inside the Docker network. Re-run the script after recreating either worker cluster so its Secret uses the new address and token.
+The script creates an `argocd-manager` service account and cluster-admin binding on each worker, then creates labeled Argo CD cluster Secrets in the `argocd` namespace. Worker Secrets receive `lab.k3d.io/role=worker` and `platform.io/swagger-gateway=enabled`; the latter opts them into the Swagger Gateway ApplicationSet. It discovers each worker load balancer's Docker IP and uses that internal network endpoint. Kubernetes API TLS verification is skipped for these dynamically addressed lab endpoints; traffic remains inside the Docker network. Re-run the script after recreating either worker cluster so its Secret uses the new address and token.
 
 ### Example ApplicationSet
 
@@ -62,6 +62,10 @@ kubectl --context k3d-argocd-lab get applications -n argocd
 ```
 
 The registration script requires `docker`, `kubectl`, `jq`, and `base64` on the host.
+
+### Install Swagger Gateway on workers
+
+Apply `swagger-gateway/applicationset.yaml` from the repository root after registering workers and applying `appset-project.yaml`. It creates one gateway Application per opted-in cluster. See [`swagger-gateway/README.md`](../../swagger-gateway/README.md#instalar-em-múltiplos-clusters) for generated names and the per-cluster discovery and proxy limitations.
 
 On this Docker host, the default inotify instance limit (128) prevented additional K3s servers from starting. The temporary host-level limit is 1024. For a fresh host with the same default, raise it from the privileged main k3d server before creating the workers:
 

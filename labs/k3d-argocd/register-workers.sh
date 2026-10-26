@@ -35,5 +35,6 @@ for name in worker-1 worker-2; do
   kubectl --context "$master_context" -n argocd label secret "cluster-${name}" \
     argocd.argoproj.io/secret-type=cluster \
     argocd.argoproj.io/auto-label-cluster-info=true \
-    lab.k3d.io/role=worker --overwrite
+    lab.k3d.io/role=worker \
+    platform.io/swagger-gateway=enabled --overwrite
 done

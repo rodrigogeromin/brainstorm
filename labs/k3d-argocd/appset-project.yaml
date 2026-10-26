@@ -8,6 +8,8 @@ spec:
     - https://bedag.github.io/helm-charts
   destinations:
     - namespace: swagger-gateway
+      server: '*'
+    - namespace: swagger-gateway
       server: https://kubernetes.default.svc
     - namespace: petstore
       server: https://kubernetes.default.svc

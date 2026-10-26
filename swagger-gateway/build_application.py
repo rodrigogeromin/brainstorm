@@ -6,6 +6,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent
 NAMESPACE = "swagger-gateway"
+INGRESS_HOST = "swagger-gateway.local"
 
 
 class ManifestDumper(yaml.SafeDumper):
@@ -86,6 +87,22 @@ def build():
     gateway_service["metadata"]["labels"] = {"platform.io/swagger.enabled": "true"}
     gateway_service["metadata"]["annotations"] = {"platform.io/swagger.path": "/openapi.json", "platform.io/swagger.port": "8080", "platform.io/swagger.title": "Swagger Gateway API"}
     resources.append(gateway_service)
+    resources.extend([
+        {"apiVersion": "networking.istio.io/v1beta1", "kind": "Gateway",
+         "metadata": {"name": "swagger-gateway", "namespace": NAMESPACE},
+         "spec": {"selector": {"istio": "ingressgateway"}, "servers": [
+             {"port": {"number": 80, "name": "http", "protocol": "HTTP"}, "hosts": [INGRESS_HOST]},
+             {"port": {"number": 443, "name": "http-443", "protocol": "HTTP"}, "hosts": [INGRESS_HOST]},
+         ]}},
+        {"apiVersion": "networking.istio.io/v1beta1", "kind": "VirtualService",
+         "metadata": {"name": "swagger-gateway", "namespace": NAMESPACE},
+         "spec": {"hosts": [INGRESS_HOST], "gateways": ["swagger-gateway"], "http": [
+             {"route": [{"destination": {"host": "swagger-gateway.swagger-gateway.svc.cluster.local", "port": {"number": 8080}}}]}
+         ]}},
+        {"apiVersion": "networking.istio.io/v1beta1", "kind": "DestinationRule",
+         "metadata": {"name": "swagger-gateway", "namespace": NAMESPACE},
+         "spec": {"host": "swagger-gateway.swagger-gateway.svc.cluster.local", "exportTo": ["."]}},
+    ])
     resources.append({"apiVersion": "networking.k8s.io/v1", "kind": "NetworkPolicy", "metadata": {"name": "swagger-gateway-from-argocd", "namespace": NAMESPACE},
                       "spec": {"podSelector": {"matchLabels": {"app": "swagger-gateway"}}, "policyTypes": ["Ingress"],
                                "ingress": [{"from": [{"namespaceSelector": {"matchLabels": {"kubernetes.io/metadata.name": "argocd"}},
@@ -101,5 +118,26 @@ def build():
                      "syncPolicy": {"automated": {"prune": False, "selfHeal": True}, "syncOptions": ["CreateNamespace=true"]}}}
 
 
+def build_applicationset():
+    application = build()
+    appset_spec = application["spec"]
+    appset_spec["destination"]["server"] = "{{.server}}"
+    return {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "ApplicationSet",
+        "metadata": {"name": "swagger-gateway", "namespace": "argocd"},
+        "spec": {
+            "goTemplate": True,
+            "goTemplateOptions": ["missingkey=error"],
+            "generators": [{"clusters": {"selector": {"matchLabels": {"platform.io/swagger-gateway": "enabled"}}}}],
+            "template": {
+                "metadata": {"name": "{{.name}}-swagger-gateway", "namespace": "argocd"},
+                "spec": appset_spec,
+            },
+        },
+    }
+
+
 if __name__ == "__main__":
     (ROOT / "application.yaml").write_text(yaml.dump(build(), Dumper=ManifestDumper, sort_keys=False, width=120))
+    (ROOT / "applicationset.yaml").write_text(yaml.dump(build_applicationset(), Dumper=ManifestDumper, sort_keys=False, width=120))
