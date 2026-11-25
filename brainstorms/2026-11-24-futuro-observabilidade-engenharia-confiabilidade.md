@@ -194,3 +194,7 @@ O maior desafio do SRE do futuro não será ensinar uma máquina a resolver um i
 - [OpenTelemetry — Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/)
 
 As propostas arquiteturais e projeções deste brainstorm são hipóteses para exploração, não especificações validadas em produção.
+
+## Reflexão complementar
+
+- [Architectural Reliability Intelligence — A confiabilidade como propriedade emergente de sistemas distribuídos](2026-11-24-architectural-reliability-intelligence.md): amplia o Reliability Control Plane com análise causal e arquitetural, dependências externas, dívida de confiabilidade e governança.
