@@ -242,3 +242,7 @@ A observabilidade torna-se um mecanismo de avaliação contínua das decisões d
 - [Lei Geral de Proteção de Dados Pessoais — Lei nº 13.709/2018](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)
 
 Os contratos, diagramas, conceitos ACA e Architectural Reliability Graph e cenários deste documento são propostas exploratórias, não especificações validadas em produção. As referências são sugestões de aprofundamento; a aplicação jurídica exige avaliação contextual.
+
+## Reflexão complementar: resiliência orientada a falhas
+
+- [Failure-Aware Architecture & Resilience Intelligence](2026-11-25-failure-aware-architecture-resilience-intelligence.md): topologia de falhas, cadeias de eventos, fallback, cobertura de resiliência e evolução arquitetural orientada por evidências.
