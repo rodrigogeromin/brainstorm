@@ -13,3 +13,5 @@ Convenção de nome: `AAAA-MM-DD-tema-da-ideia.md`.
 - [O futuro da observabilidade e da engenharia de confiabilidade](2026-11-24-futuro-observabilidade-engenharia-confiabilidade.md): confiabilidade adaptativa, Agentic SRE e Reliability Control Plane.
 
 - [Architectural Reliability Intelligence](2026-11-24-architectural-reliability-intelligence.md): confiabilidade sistêmica, dependências distribuídas, análise arquitetural, dívida de confiabilidade e compliance.
+
+- [Failure-Aware Architecture & Resilience Intelligence](2026-11-25-failure-aware-architecture-resilience-intelligence.md): topologia de falhas, cadeias de eventos, fallback, cobertura de resiliência e evolução arquitetural orientada por evidências.
