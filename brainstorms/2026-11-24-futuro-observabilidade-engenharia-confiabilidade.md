@@ -198,3 +198,7 @@ As propostas arquiteturais e projeções deste brainstorm são hipóteses para e
 ## Reflexão complementar
 
 - [Architectural Reliability Intelligence — A confiabilidade como propriedade emergente de sistemas distribuídos](2026-11-24-architectural-reliability-intelligence.md): amplia o Reliability Control Plane com análise causal e arquitetural, dependências externas, dívida de confiabilidade e governança.
+
+## Reflexão complementar: resiliência orientada a falhas
+
+- [Failure-Aware Architecture & Resilience Intelligence](2026-11-25-failure-aware-architecture-resilience-intelligence.md): topologia de falhas, cadeias de eventos, fallback, cobertura de resiliência e evolução arquitetural orientada por evidências.
