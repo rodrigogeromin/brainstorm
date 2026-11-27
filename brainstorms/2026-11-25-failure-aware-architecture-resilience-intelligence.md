@@ -198,3 +198,7 @@ A maturidade de uma plataforma de negócios não deveria ser medida apenas pela 
 A observabilidade torna-se um mecanismo de aprendizado sobre o comportamento da arquitetura em condições adversas. O objetivo não é eliminar toda falha, mas compreender, limitar e validar suas consequências para o negócio.
 
 Os modelos, indicadores e contratos deste brainstorm são propostas exploratórias, ainda não validadas em produção.
+
+## Reflexão complementar: confiabilidade declarativa
+
+- [Declarative Reliability & Adversarial Intelligence](2026-11-26-declarative-reliability-adversarial-intelligence.md): contratos verificáveis, investigação orientada a eventos, evidências e pipelines adversariais.
