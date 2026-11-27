@@ -17,3 +17,5 @@ Convenção de nome: `AAAA-MM-DD-tema-da-ideia.md`.
 - [Failure-Aware Architecture & Resilience Intelligence](2026-11-25-failure-aware-architecture-resilience-intelligence.md): topologia de falhas, cadeias de eventos, fallback, cobertura de resiliência e evolução arquitetural orientada por evidências.
 
 - [Declarative Reliability & Adversarial Intelligence](2026-11-26-declarative-reliability-adversarial-intelligence.md): contratos verificáveis, investigação orientada a eventos, evidências e pipelines adversariais.
+
+- [Human-Guided Reliability Intelligence](2026-11-26-human-guided-reliability-intelligence.md): investigação multidimensional, dossiê de evidências, workspace de decisão humana e aprendizado institucional no horizonte 2027–2028.
