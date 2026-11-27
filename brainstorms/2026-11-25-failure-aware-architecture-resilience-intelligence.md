@@ -202,3 +202,7 @@ Os modelos, indicadores e contratos deste brainstorm são propostas exploratóri
 ## Reflexão complementar: confiabilidade declarativa
 
 - [Declarative Reliability & Adversarial Intelligence](2026-11-26-declarative-reliability-adversarial-intelligence.md): contratos verificáveis, investigação orientada a eventos, evidências e pipelines adversariais.
+
+## Reflexão complementar: investigação guiada por humanos
+
+- [Human-Guided Reliability Intelligence](2026-11-26-human-guided-reliability-intelligence.md): investigação multidimensional, dossiê de evidências, workspace de decisão humana e aprendizado institucional no horizonte 2027–2028.
