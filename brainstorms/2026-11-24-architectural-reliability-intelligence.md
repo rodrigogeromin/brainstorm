@@ -246,3 +246,7 @@ Os contratos, diagramas, conceitos ACA e Architectural Reliability Graph e cená
 ## Reflexão complementar: resiliência orientada a falhas
 
 - [Failure-Aware Architecture & Resilience Intelligence](2026-11-25-failure-aware-architecture-resilience-intelligence.md): topologia de falhas, cadeias de eventos, fallback, cobertura de resiliência e evolução arquitetural orientada por evidências.
+
+## Reflexão complementar: confiabilidade declarativa
+
+- [Declarative Reliability & Adversarial Intelligence](2026-11-26-declarative-reliability-adversarial-intelligence.md): contratos verificáveis, investigação orientada a eventos, evidências e pipelines adversariais.
