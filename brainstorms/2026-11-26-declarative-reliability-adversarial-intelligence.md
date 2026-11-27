@@ -373,3 +373,7 @@ Aprofundar a especificação formal do ReliabilityContract, a semântica das ass
 **O contrato declara a intenção; a evidência sustenta a avaliação; a contestação reduz conclusões precipitadas; a governança limita a ação.**
 
 Todos os contratos, diagramas e mecanismos aqui apresentados são propostas exploratórias, não especificações implementadas ou validadas em produção.
+
+## Reflexão complementar: investigação guiada por humanos
+
+- [Human-Guided Reliability Intelligence](2026-11-26-human-guided-reliability-intelligence.md): investigação multidimensional, dossiê de evidências, workspace de decisão humana e aprendizado institucional no horizonte 2027–2028.
